@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import DeleteNotificationButton from '@/src/components/delete-notification-button';
 import ClearNotificationsButton from '@/src/components/clear-notifications-button';
+import OpenNotificationButton from '@/src/components/open-notification-button';
 
 type NotificationItem = {
     id: string;
@@ -8,6 +9,7 @@ type NotificationItem = {
     subject: string;
     body: string;
     status: string;
+    isRead: boolean;
     sentAt: string | null;
     createdAt: string;
     product: {
@@ -45,15 +47,6 @@ export default async function NotificationsPage() {
                     <ClearNotificationsButton />
                 </div>
 
-                <div className="mb-6 flex gap-4">
-                    <Link href="/" className="text-blue-600 underline">
-                        商品一覧へ戻る
-                    </Link>
-                    <Link href="/watchlists" className="text-blue-600 underline">
-                        ウォッチリストへ
-                    </Link>
-                </div>
-
                 {notifications.length === 0 ? (
                     <div className="rounded-xl border bg-white p-8 text-center text-gray-600 shadow-sm">
                         通知はありません
@@ -63,11 +56,23 @@ export default async function NotificationsPage() {
                         {notifications.map((notification) => (
                             <div
                                 key={notification.id}
-                                className="rounded-xl border bg-white p-4 shadow-sm"
+                                className={`rounded-xl border p-4 shadow-sm ${
+                                    notification.isRead
+                                        ? 'bg-white'
+                                        : 'border-blue-300 bg-blue-50'
+                                }`}
                             >
-                                <div className="mb-2 text-lg font-semibold">
-                                    {notification.subject}
+                                <div className="mb-2 flex flex-wrap items-center gap-2">
+                                    {!notification.isRead && (
+                                        <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">
+                      未読
+                    </span>
+                                    )}
+                                    <div className="text-lg font-semibold">
+                                        {notification.subject}
+                                    </div>
                                 </div>
+
                                 <div className="text-sm text-gray-600">
                                     種別: {notification.notificationType}
                                 </div>
@@ -75,7 +80,8 @@ export default async function NotificationsPage() {
                                     状態: {notification.status}
                                 </div>
                                 <div className="text-sm text-gray-600">
-                                    作成日時: {new Date(notification.createdAt).toLocaleString('ja-JP')}
+                                    作成日時:{' '}
+                                    {new Date(notification.createdAt).toLocaleString('ja-JP')}
                                 </div>
                                 <div className="text-sm text-gray-600">
                                     送信日時:{' '}
@@ -96,7 +102,7 @@ export default async function NotificationsPage() {
                                 </div>
 
                                 {notification.productOffer && (
-                                    <div className="mt-2 rounded-lg bg-blue-50 p-3">
+                                    <div className="mt-2 rounded-lg bg-white p-3">
                                         <div>ショップ: {notification.productOffer.shopType}</div>
                                         <div>
                                             実質価格: ¥
@@ -113,7 +119,13 @@ export default async function NotificationsPage() {
                                     </div>
                                 )}
 
-                                <DeleteNotificationButton notificationId={notification.id} />
+                                <div className="mt-4 flex flex-wrap gap-3">
+                                    <OpenNotificationButton
+                                        notificationId={notification.id}
+                                        productId={notification.product.id}
+                                    />
+                                    <DeleteNotificationButton notificationId={notification.id} />
+                                </div>
                             </div>
                         ))}
                     </div>

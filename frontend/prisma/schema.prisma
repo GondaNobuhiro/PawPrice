@@ -146,6 +146,7 @@ model Notification {
   body             String
   sentAt           DateTime? @map("sent_at")
   status           String    @default("pending")
+  isRead           Boolean   @default(false) @map("is_read")
   createdAt        DateTime  @default(now()) @map("created_at")
 
   user         User          @relation(fields: [userId], references: [id])

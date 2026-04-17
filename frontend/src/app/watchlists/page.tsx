@@ -42,12 +42,6 @@ export default async function WatchlistsPage() {
             <div className="mx-auto max-w-5xl">
                 <h1 className="mb-6 text-3xl font-bold">ウォッチリスト</h1>
 
-                <div className="mb-6">
-                    <Link href="/" className="text-blue-600 underline">
-                        商品一覧へ戻る
-                    </Link>
-                </div>
-
                 <div className="grid gap-4">
                     {watchlists.map((item) => (
                         <div

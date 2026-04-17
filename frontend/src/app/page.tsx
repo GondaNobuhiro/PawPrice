@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import WatchButton from '@/src/components/watch-button';
 import PushSubscribeButton from '@/src/components/push-subscribe-button';
+import NotificationsLink from '@/src/components/notifications-link';
 
 type ProductResponse = {
   id: string;
@@ -99,15 +100,6 @@ export default async function Home({ searchParams }: Props) {
         <div className="mx-auto max-w-6xl">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <h1 className="text-3xl font-bold">PawPrice 商品一覧</h1>
-
-            <div className="flex gap-4 text-sm">
-              <Link href="/watchlists" className="text-blue-600 underline">
-                ウォッチリストを見る
-              </Link>
-              <Link href="/notifications" className="text-blue-600 underline">
-                通知一覧を見る
-              </Link>
-            </div>
             <div className="mt-3">
               <PushSubscribeButton />
             </div>
