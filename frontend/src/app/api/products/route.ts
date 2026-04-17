@@ -6,6 +6,7 @@ export async function GET(request: Request) {
 
     const q = searchParams.get('q')?.trim() ?? '';
     const category = searchParams.get('category')?.trim() ?? '';
+    const sort = searchParams.get('sort')?.trim() ?? 'newest';
 
     const products = await prisma.product.findMany({
         where: {
@@ -38,12 +39,9 @@ export async function GET(request: Request) {
                 },
             },
         },
-        orderBy: {
-            createdAt: 'desc',
-        },
     });
 
-    const response = products.map((product) => ({
+    const mapped = products.map((product) => ({
         id: product.id.toString(),
         name: product.name,
         category: product.category.name,
@@ -52,6 +50,7 @@ export async function GET(request: Request) {
         petType: product.petType,
         packageSize: product.packageSize,
         imageUrl: product.imageUrl,
+        createdAt: product.createdAt,
         offersCount: product.offers.length,
         lowestOffer: product.offers[0]
             ? {
@@ -67,5 +66,18 @@ export async function GET(request: Request) {
             : null,
     }));
 
-    return NextResponse.json(response);
+    if (sort === 'price_asc') {
+        mapped.sort((a, b) => {
+            const aPrice = a.lowestOffer?.effectivePrice ?? Number.MAX_SAFE_INTEGER;
+            const bPrice = b.lowestOffer?.effectivePrice ?? Number.MAX_SAFE_INTEGER;
+            return aPrice - bPrice;
+        });
+    } else {
+        mapped.sort(
+            (a, b) =>
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+    }
+
+    return NextResponse.json(mapped);
 }

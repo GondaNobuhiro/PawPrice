@@ -5,18 +5,16 @@ import { Pool } from 'pg';
 
 const connectionString = process.env.DATABASE_URL;
 
-// 1. Instantiate the driver
+if (!connectionString) {
+    throw new Error('DATABASE_URL is not set');
+}
+
 const pool = new Pool({ connectionString });
-
-// 2. Instantiate the adapter
 const adapter = new PrismaPg(pool);
-
-// 3. Pass the adapter option to the Prisma Client
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-
-    const user = await prisma.user.upsert({
+    await prisma.user.upsert({
         where: { email: 'demo@example.com' },
         update: {},
         create: {
@@ -25,96 +23,55 @@ async function main() {
         },
     });
 
-    const foodCategory = await prisma.category.upsert({
-        where: { code: 'dog_cat_food' },
-        update: {},
-        create: {
-            code: 'dog_cat_food',
-            name: '犬猫のフード',
-        },
-    });
+    const categories = [
+        { code: 'dog_cat_food', name: '犬猫のフード' },
+        { code: 'toilet_supplies', name: 'トイレ用品' },
+        { code: 'pet_sheets', name: 'ペットシーツ' },
+        { code: 'snacks', name: 'おやつ' },
+        { code: 'cat_litter', name: '猫砂' },
+        { code: 'toilet_main_unit', name: 'トイレ本体' },
+        { code: 'water_feeders', name: '給水器' },
+        { code: 'feeding_bowls', name: '食器' },
+        { code: 'cages', name: 'ケージ' },
+        { code: 'carriers', name: 'キャリーバッグ' },
+        { code: 'toys', name: 'おもちゃ' },
+        { code: 'scratchers', name: '爪とぎ' },
+        { code: 'deodorizers', name: '消臭用品' },
+    ] as const;
 
-    const brand = await prisma.brand.upsert({
-        where: { name: 'ロイヤルカナン' },
-        update: {},
-        create: {
-            name: 'ロイヤルカナン',
-        },
-    });
+    for (const category of categories) {
+        await prisma.category.upsert({
+            where: { code: category.code },
+            update: {
+                name: category.name,
+            },
+            create: {
+                code: category.code,
+                name: category.name,
+            },
+        });
+    }
 
-    const product = await prisma.product.create({
-        data: {
-            category: {
-                connect: { id: foodCategory.id },
-            },
-            brand: {
-                connect: { id: brand.id },
-            },
-            name: 'ロイヤルカナン 室内成猫用 2kg',
-            normalizedName: 'ロイヤルカナン 室内成猫用 2kg',
-            janCode: '1234567890123',
-            petType: 'cat',
-            packageSize: '2kg',
-            imageUrl: 'https://example.com/product.jpg',
-            description: '室内で暮らす成猫向けフード',
-            offers: {
-                create: [
-                    {
-                        shopType: 'amazon',
-                        externalItemId: 'AMAZON_SAMPLE_001',
-                        externalUrl: 'https://amazon.example/item1',
-                        title: 'ロイヤルカナン 室内成猫用 2kg',
-                        sellerName: 'Amazon',
-                        price: 2980,
-                        shippingFee: 0,
-                        pointAmount: 0,
-                        effectivePrice: 2980,
-                        availabilityStatus: 'in_stock',
-                        imageUrl: 'https://example.com/product.jpg',
-                        lastFetchedAt: new Date(),
-                        priceHistories: {
-                            create: [
-                                {
-                                    price: 2980,
-                                    shippingFee: 0,
-                                    pointAmount: 0,
-                                    effectivePrice: 2980,
-                                    fetchedAt: new Date(),
-                                },
-                            ],
-                        },
-                    },
-                    {
-                        shopType: 'rakuten',
-                        externalItemId: 'RAKUTEN_SAMPLE_001',
-                        externalUrl: 'https://rakuten.example/item1',
-                        title: 'ロイヤルカナン 室内成猫用 2kg',
-                        sellerName: '楽天市場',
-                        price: 3100,
-                        shippingFee: 0,
-                        pointAmount: 100,
-                        effectivePrice: 3000,
-                        availabilityStatus: 'in_stock',
-                        imageUrl: 'https://example.com/product.jpg',
-                        lastFetchedAt: new Date(),
-                        priceHistories: {
-                            create: [
-                                {
-                                    price: 3100,
-                                    shippingFee: 0,
-                                    pointAmount: 100,
-                                    effectivePrice: 3000,
-                                    fetchedAt: new Date(),
-                                },
-                            ],
-                        },
-                    },
-                ],
-            },
-        },
-    });
+    const brands = [
+        { name: 'ロイヤルカナン' },
+        { name: 'ユニ・チャーム' },
+        { name: '花王' },
+        { name: 'アイリスオーヤマ' },
+        { name: 'ライオンペット' },
+        { name: 'ペティオ' },
+    ] as const;
 
-    console.log('seed completed:', product.id.toString());
+    for (const brand of brands) {
+        await prisma.brand.upsert({
+            where: { name: brand.name },
+            update: {},
+            create: {
+                name: brand.name,
+            },
+        });
+    }
+
+    console.log('seed completed');
 }
 
 main()

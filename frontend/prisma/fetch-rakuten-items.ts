@@ -46,20 +46,140 @@ type RakutenResponse = {
 };
 
 const CATEGORY_MAP = [
+    // フード
     {
         categoryCode: 'dog_cat_food',
         keyword: 'ロイヤルカナン 猫 フード 2kg',
         petType: 'cat',
     },
     {
+        categoryCode: 'dog_cat_food',
+        keyword: 'ドッグフード 無添加',
+        petType: 'dog',
+    },
+
+    // トイレ用品
+    {
         categoryCode: 'toilet_supplies',
-        keyword: '猫砂 トイレ用品',
+        keyword: '猫 トイレ用品',
         petType: 'cat',
     },
+
+    // ペットシーツ
     {
         categoryCode: 'pet_sheets',
         keyword: 'ペットシーツ レギュラー',
         petType: 'dog',
+    },
+    {
+        categoryCode: 'pet_sheets',
+        keyword: 'ペットシーツ ワイド',
+        petType: 'dog',
+    },
+    {
+        categoryCode: 'pet_sheets',
+        keyword: 'ペットシーツ スーパーワイド',
+        petType: 'dog',
+    },
+
+    // おやつ
+    {
+        categoryCode: 'snacks',
+        keyword: '犬 おやつ 無添加',
+        petType: 'dog',
+    },
+    {
+        categoryCode: 'snacks',
+        keyword: '猫 おやつ チュール',
+        petType: 'cat',
+    },
+
+    // 猫砂
+    {
+        categoryCode: 'cat_litter',
+        keyword: '猫砂 固まる',
+        petType: 'cat',
+    },
+    {
+        categoryCode: 'cat_litter',
+        keyword: '猫砂 おから',
+        petType: 'cat',
+    },
+
+    // トイレ本体
+    {
+        categoryCode: 'toilet_main_unit',
+        keyword: '猫 トイレ 本体',
+        petType: 'cat',
+    },
+
+    // 給水器
+    {
+        categoryCode: 'water_feeders',
+        keyword: '猫 給水器 自動',
+        petType: 'cat',
+    },
+    {
+        categoryCode: 'water_feeders',
+        keyword: '犬 給水器',
+        petType: 'dog',
+    },
+
+    // 食器
+    {
+        categoryCode: 'feeding_bowls',
+        keyword: '犬 猫 食器 おしゃれ',
+        petType: 'both',
+    },
+
+    // ケージ
+    {
+        categoryCode: 'cages',
+        keyword: '犬 ケージ 室内',
+        petType: 'dog',
+    },
+    {
+        categoryCode: 'cages',
+        keyword: '猫 ケージ 3段',
+        petType: 'cat',
+    },
+
+    // キャリー
+    {
+        categoryCode: 'carriers',
+        keyword: '猫 キャリーバッグ',
+        petType: 'cat',
+    },
+    {
+        categoryCode: 'carriers',
+        keyword: '犬 キャリーバッグ 小型犬',
+        petType: 'dog',
+    },
+
+    // おもちゃ
+    {
+        categoryCode: 'toys',
+        keyword: '猫 おもちゃ ねこじゃらし',
+        petType: 'cat',
+    },
+    {
+        categoryCode: 'toys',
+        keyword: '犬 おもちゃ 噛む',
+        petType: 'dog',
+    },
+
+    // 爪とぎ
+    {
+        categoryCode: 'scratchers',
+        keyword: '猫 爪とぎ ポール',
+        petType: 'cat',
+    },
+
+    // 消臭
+    {
+        categoryCode: 'deodorizers',
+        keyword: 'ペット 消臭 スプレー',
+        petType: 'both',
     },
 ] as const;
 
@@ -73,7 +193,7 @@ async function fetchRakutenItems(
     params.set('format', 'json');
     params.set('formatVersion', '2');
     params.set('keyword', keyword);
-    params.set('hits', '10');
+    params.set('hits', '20');
     params.set('sort', '+itemPrice');
     params.set('elements', 'itemName,itemCode,itemPrice,itemUrl,shopName,mediumImageUrls');
 

@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import WatchButton from '@/src/components/watch-button';
 import PushSubscribeButton from '@/src/components/push-subscribe-button';
-import NotificationsLink from '@/src/components/notifications-link';
+import CategoryFilterChips from '@/src/components/category-filter-chips';
+import SortSelect from '@/src/components/sort-select';
 
 type ProductResponse = {
   id: string;
@@ -12,6 +13,7 @@ type ProductResponse = {
   petType: string;
   packageSize: string | null;
   imageUrl: string | null;
+  createdAt: string;
   offersCount: number;
   lowestOffer: {
     shopType: string;
@@ -31,11 +33,16 @@ type CategoryResponse = {
   name: string;
 };
 
-async function getProducts(q?: string, category?: string): Promise<ProductResponse[]> {
+async function getProducts(
+    q?: string,
+    category?: string,
+    sort?: string,
+): Promise<ProductResponse[]> {
   const params = new URLSearchParams();
 
   if (q) params.set('q', q);
   if (category) params.set('category', category);
+  if (sort) params.set('sort', sort);
 
   const query = params.toString();
   const url = query
@@ -69,6 +76,7 @@ type Props = {
   searchParams: Promise<{
     q?: string;
     category?: string;
+    sort?: string;
   }>;
 };
 
@@ -89,9 +97,10 @@ export default async function Home({ searchParams }: Props) {
   const params = await searchParams;
   const q = params.q ?? '';
   const category = params.category ?? '';
+  const sort = params.sort ?? 'newest';
 
   const [products, categories] = await Promise.all([
-    getProducts(q, category),
+    getProducts(q, category, sort),
     getCategories(),
   ]);
 
@@ -106,7 +115,7 @@ export default async function Home({ searchParams }: Props) {
           </div>
 
           <form className="mb-6 rounded-2xl border bg-white p-4 shadow-sm">
-            <div className="grid gap-4 md:grid-cols-[1fr_220px_140px]">
+            <div className="grid gap-4 md:grid-cols-[1fr_220px_180px_140px]">
               <input
                   type="text"
                   name="q"
@@ -128,6 +137,15 @@ export default async function Home({ searchParams }: Props) {
                 ))}
               </select>
 
+              <select
+                  name="sort"
+                  defaultValue={sort}
+                  className="rounded-xl border px-3 py-2"
+              >
+                <option value="newest">新着順</option>
+                <option value="price_asc">安い順</option>
+              </select>
+
               <button
                   type="submit"
                   className="rounded-xl bg-blue-600 px-4 py-2 text-white"
@@ -136,6 +154,19 @@ export default async function Home({ searchParams }: Props) {
               </button>
             </div>
           </form>
+
+          <CategoryFilterChips
+              categories={categories}
+              selectedCategory={category}
+              q={q}
+              sort={sort}
+          />
+
+          <SortSelect
+              q={q}
+              category={category}
+              selectedSort={sort}
+          />
 
           <div className="mb-4 text-sm text-gray-600">
             検索結果: {products.length}件
