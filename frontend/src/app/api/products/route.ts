@@ -8,31 +8,38 @@ export async function GET(request: Request) {
     const category = searchParams.get('category')?.trim() ?? '';
     const sort = searchParams.get('sort')?.trim() ?? 'newest';
     const petType = searchParams.get('petType')?.trim() ?? '';
+    const page = Number(searchParams.get('page') ?? '1');
+    const limit = Number(searchParams.get('limit') ?? '20');
+
+    const currentPage = Number.isNaN(page) || page < 1 ? 1 : page;
+    const currentLimit = Number.isNaN(limit) || limit < 1 ? 20 : limit;
+
+    const where = {
+        isActive: true,
+        ...(q
+            ? {
+                OR: [
+                    { name: { contains: q, mode: 'insensitive' as const } },
+                    { normalizedName: { contains: q, mode: 'insensitive' as const } },
+                ],
+            }
+            : {}),
+        ...(category
+            ? {
+                category: {
+                    code: category,
+                },
+            }
+            : {}),
+        ...(petType
+            ? {
+                petType,
+            }
+            : {}),
+    };
 
     const products = await prisma.product.findMany({
-        where: {
-            isActive: true,
-            ...(q
-                ? {
-                    OR: [
-                        { name: { contains: q, mode: 'insensitive' } },
-                        { normalizedName: { contains: q, mode: 'insensitive' } },
-                    ],
-                }
-                : {}),
-            ...(category
-                ? {
-                    category: {
-                        code: category,
-                    },
-                }
-                : {}),
-            ...(petType
-                ? {
-                    petType,
-                }
-                : {}),
-        },
+        where,
         include: {
             category: true,
             brand: true,
@@ -85,5 +92,23 @@ export async function GET(request: Request) {
         );
     }
 
-    return NextResponse.json(mapped);
+    const totalCount = mapped.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / currentLimit));
+    const safePage = Math.min(currentPage, totalPages);
+    const start = (safePage - 1) * currentLimit;
+    const end = start + currentLimit;
+
+    const paginated = mapped.slice(start, end);
+
+    return NextResponse.json({
+        items: paginated,
+        pagination: {
+            page: safePage,
+            limit: currentLimit,
+            totalCount,
+            totalPages,
+            hasPreviousPage: safePage > 1,
+            hasNextPage: safePage < totalPages,
+        },
+    });
 }
