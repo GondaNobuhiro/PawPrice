@@ -3,50 +3,51 @@ import Link from 'next/link';
 type Props = {
     q: string;
     category: string;
-    petType: string;
-    selectedSort: string;
+    sort: string;
+    selectedPetType: string;
 };
 
 function buildHref(
     q: string,
     category: string,
-    petType: string,
     sort: string,
+    petType: string,
 ): string {
     const params = new URLSearchParams();
 
     if (q) params.set('q', q);
     if (category) params.set('category', category);
-    if (petType) params.set('petType', petType);
     if (sort) params.set('sort', sort);
+    if (petType) params.set('petType', petType);
 
     const query = params.toString();
     return query ? `/?${query}` : '/';
 }
 
-export default function SortSelect({
-                                       q,
-                                       category,
-                                       petType,
-                                       selectedSort,
-                                   }: Props) {
+export default function PetTypeFilter({
+                                          q,
+                                          category,
+                                          sort,
+                                          selectedPetType,
+                                      }: Props) {
     const options = [
-        { value: 'newest', label: '新着順' },
-        { value: 'price_asc', label: '安い順' },
+        { value: '', label: 'すべて' },
+        { value: 'dog', label: '犬' },
+        { value: 'cat', label: '猫' },
     ];
 
     return (
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-            <div className="text-sm font-medium text-gray-700">並び替え</div>
+        <div className="mb-6">
+            <div className="mb-2 text-sm font-medium text-gray-700">対象ペット</div>
 
             <div className="flex flex-wrap gap-2">
                 {options.map((option) => (
                     <Link
-                        key={option.value}
-                        href={buildHref(q, category, petType, option.value)}
+                        key={option.value || 'all'}
+                        href={buildHref(q, category, sort, option.value)}
                         className={`rounded-full px-4 py-2 text-sm transition ${
-                            selectedSort === option.value
-                                ? 'bg-gray-900 text-white'
+                            selectedPetType === option.value
+                                ? 'bg-emerald-600 text-white'
                                 : 'border bg-white text-gray-700 hover:bg-gray-50'
                         }`}
                     >

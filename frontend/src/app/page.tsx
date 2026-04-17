@@ -3,6 +3,7 @@ import WatchButton from '@/src/components/watch-button';
 import PushSubscribeButton from '@/src/components/push-subscribe-button';
 import CategoryFilterChips from '@/src/components/category-filter-chips';
 import SortSelect from '@/src/components/sort-select';
+import PetTypeFilter from '@/src/components/pet-type-filter';
 
 type ProductResponse = {
   id: string;
@@ -37,12 +38,14 @@ async function getProducts(
     q?: string,
     category?: string,
     sort?: string,
+    petType?: string,
 ): Promise<ProductResponse[]> {
   const params = new URLSearchParams();
 
   if (q) params.set('q', q);
   if (category) params.set('category', category);
   if (sort) params.set('sort', sort);
+  if (petType) params.set('petType', petType);
 
   const query = params.toString();
   const url = query
@@ -77,6 +80,7 @@ type Props = {
     q?: string;
     category?: string;
     sort?: string;
+    petType?: string;
   }>;
 };
 
@@ -98,9 +102,10 @@ export default async function Home({ searchParams }: Props) {
   const q = params.q ?? '';
   const category = params.category ?? '';
   const sort = params.sort ?? 'newest';
+  const petType = params.petType ?? '';
 
   const [products, categories] = await Promise.all([
-    getProducts(q, category, sort),
+    getProducts(q, category, sort, petType),
     getCategories(),
   ]);
 
@@ -115,7 +120,7 @@ export default async function Home({ searchParams }: Props) {
           </div>
 
           <form className="mb-6 rounded-2xl border bg-white p-4 shadow-sm">
-            <div className="grid gap-4 md:grid-cols-[1fr_220px_180px_140px]">
+            <div className="grid gap-4 md:grid-cols-[1fr_220px_160px_160px_140px]">
               <input
                   type="text"
                   name="q"
@@ -135,6 +140,16 @@ export default async function Home({ searchParams }: Props) {
                       {cat.name}
                     </option>
                 ))}
+              </select>
+
+              <select
+                  name="petType"
+                  defaultValue={petType}
+                  className="rounded-xl border px-3 py-2"
+              >
+                <option value="">すべて</option>
+                <option value="dog">犬</option>
+                <option value="cat">猫</option>
               </select>
 
               <select
@@ -160,11 +175,20 @@ export default async function Home({ searchParams }: Props) {
               selectedCategory={category}
               q={q}
               sort={sort}
+              petType={petType}
+          />
+
+          <PetTypeFilter
+              q={q}
+              category={category}
+              sort={sort}
+              selectedPetType={petType}
           />
 
           <SortSelect
               q={q}
               category={category}
+              petType={petType}
               selectedSort={sort}
           />
 

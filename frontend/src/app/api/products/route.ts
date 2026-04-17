@@ -7,6 +7,7 @@ export async function GET(request: Request) {
     const q = searchParams.get('q')?.trim() ?? '';
     const category = searchParams.get('category')?.trim() ?? '';
     const sort = searchParams.get('sort')?.trim() ?? 'newest';
+    const petType = searchParams.get('petType')?.trim() ?? '';
 
     const products = await prisma.product.findMany({
         where: {
@@ -24,6 +25,11 @@ export async function GET(request: Request) {
                     category: {
                         code: category,
                     },
+                }
+                : {}),
+            ...(petType
+                ? {
+                    petType,
                 }
                 : {}),
         },
