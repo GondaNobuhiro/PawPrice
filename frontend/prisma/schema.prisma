@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            BigInt         @id @default(autoincrement())
+  email         String         @unique
+  passwordHash  String?        @map("password_hash")
+  displayName   String?        @map("display_name")
+  notifyEnabled Boolean        @default(true) @map("notify_enabled")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  watchlists    Watchlist[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Category {
+  id       BigInt    @id @default(autoincrement())
+  code     String    @unique
+  name     String
+  products Product[]
+
+  @@map("categories")
+}
+
+model Brand {
+  id        BigInt    @id @default(autoincrement())
+  name      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  products  Product[]
+
+  @@map("brands")
+}
+
+model Product {
+  id             BigInt   @id @default(autoincrement())
+  categoryId     BigInt   @map("category_id")
+  brandId        BigInt?  @map("brand_id")
+  name           String
+  normalizedName String?  @map("normalized_name")
+  janCode        String?  @map("jan_code")
+  modelNumber    String?  @map("model_number")
+  petType        String   @map("pet_type")
+  packageSize    String?  @map("package_size")
+  imageUrl       String?  @map("image_url")
+  description    String?
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  category      Category       @relation(fields: [categoryId], references: [id])
+  brand         Brand?         @relation(fields: [brandId], references: [id])
+  offers        ProductOffer[]
+  watchlists    Watchlist[]
+  notifications Notification[]
+
+  @@map("products")
+}
+
+model ProductOffer {
+  id                 BigInt   @id @default(autoincrement())
+  productId          BigInt   @map("product_id")
+  shopType           String   @map("shop_type")
+  externalItemId     String   @map("external_item_id")
+  externalUrl        String   @map("external_url")
+  title              String
+  sellerName         String?  @map("seller_name")
+  price              Int
+  shippingFee        Int      @default(0) @map("shipping_fee")
+  pointAmount        Int      @default(0) @map("point_amount")
+  effectivePrice     Int      @map("effective_price")
+  currency           String   @default("JPY")
+  availabilityStatus String?  @map("availability_status")
+  imageUrl           String?  @map("image_url")
+  lastFetchedAt      DateTime @map("last_fetched_at")
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  product        Product        @relation(fields: [productId], references: [id])
+  priceHistories PriceHistory[]
+  notifications  Notification[]
+
+  @@unique([shopType, externalItemId])
+  @@map("product_offers")
+}
+
+model PriceHistory {
+  id             BigInt   @id @default(autoincrement())
+  productOfferId BigInt   @map("product_offer_id")
+  price          Int
+  shippingFee    Int      @default(0) @map("shipping_fee")
+  pointAmount    Int      @default(0) @map("point_amount")
+  effectivePrice Int      @map("effective_price")
+  fetchedAt      DateTime @map("fetched_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  productOffer ProductOffer @relation(fields: [productOfferId], references: [id])
+
+  @@map("price_histories")
+}
+
+model Watchlist {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt   @map("user_id")
+  productId BigInt   @map("product_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user           User            @relation(fields: [userId], references: [id])
+  product        Product         @relation(fields: [productId], references: [id])
+  watchCondition WatchCondition?
+
+  @@unique([userId, productId])
+  @@map("watchlists")
+}
+
+model WatchCondition {
+  id                BigInt   @id @default(autoincrement())
+  watchlistId       BigInt   @unique @map("watchlist_id")
+  targetPrice       Int?     @map("target_price")
+  notifyOnPriceDrop Boolean  @default(true) @map("notify_on_price_drop")
+  notifyOnLowest    Boolean  @default(false) @map("notify_on_lowest")
+  lastNotifiedPrice Int?     @map("last_notified_price")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  watchlist Watchlist @relation(fields: [watchlistId], references: [id])
+
+  @@map("watch_conditions")
+}
+
+model Notification {
+  id               BigInt    @id @default(autoincrement())
+  userId           BigInt    @map("user_id")
+  productId        BigInt    @map("product_id")
+  productOfferId   BigInt?   @map("product_offer_id")
+  notificationType String    @map("notification_type")
+  subject          String
+  body             String
+  sentAt           DateTime? @map("sent_at")
+  status           String    @default("pending")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  user         User          @relation(fields: [userId], references: [id])
+  product      Product       @relation(fields: [productId], references: [id])
+  productOffer ProductOffer? @relation(fields: [productOfferId], references: [id])
+
+  @@map("notifications")
+}
