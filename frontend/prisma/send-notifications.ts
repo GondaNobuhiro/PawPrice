@@ -2,9 +2,14 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import { webpush } from '../src/lib/web-push';
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 const connectionString = process.env.DATABASE_URL;
 
+if (!appUrl) {
+    throw new Error('NEXT_PUBLIC_APP_URL is not set');
+}
 if (!connectionString) {
     throw new Error('DATABASE_URL is not set');
 }
@@ -19,56 +24,66 @@ async function main() {
             status: 'pending',
         },
         include: {
-            user: true,
+            user: {
+                include: {
+                    pushSubscriptions: {
+                        where: { isActive: true },
+                    },
+                },
+            },
             product: true,
-            productOffer: true,
         },
         orderBy: {
             createdAt: 'asc',
         },
     });
 
-    if (notifications.length === 0) {
-        console.log('送信対象の通知はありません');
-        return;
-    }
-
     for (const notification of notifications) {
-        try {
-            console.log('------------------------------');
-            console.log(`To: ${notification.user.email}`);
-            console.log(`Subject: ${notification.subject}`);
-            console.log(`Body: ${notification.body}`);
+        const subscriptions = notification.user.pushSubscriptions;
 
-            if (notification.productOffer) {
-                console.log(
-                    `Product URL: ${notification.productOffer.externalUrl}`,
+        if (subscriptions.length === 0) {
+            console.log(`push subscription not found: notificationId=${notification.id.toString()}`);
+            continue;
+        }
+
+        let sent = false;
+
+        for (const subscription of subscriptions) {
+            try {
+                await webpush.sendNotification(
+                    {
+                        endpoint: subscription.endpoint,
+                        keys: {
+                            p256dh: subscription.p256dhKey,
+                            auth: subscription.authKey,
+                        },
+                    },
+                    JSON.stringify({
+                        title: notification.subject,
+                        body: notification.body,
+                        url: `${appUrl}/products/${notification.productId.toString()}`,
+                    }),
                 );
-            }
 
+                sent = true;
+            } catch (error: any) {
+                console.error('push send failed', error);
+
+                if (error?.statusCode === 404 || error?.statusCode === 410) {
+                    await prisma.pushSubscription.update({
+                        where: { id: subscription.id },
+                        data: { isActive: false },
+                    });
+                }
+            }
+        }
+
+        if (sent) {
             await prisma.notification.update({
-                where: {
-                    id: notification.id,
-                },
+                where: { id: notification.id },
                 data: {
                     status: 'sent',
                     sentAt: new Date(),
-                },
-            });
-
-            console.log(`送信完了: notificationId=${notification.id.toString()}`);
-        } catch (error) {
-            console.error(
-                `送信失敗: notificationId=${notification.id.toString()}`,
-                error,
-            );
-
-            await prisma.notification.update({
-                where: {
-                    id: notification.id,
-                },
-                data: {
-                    status: 'failed',
                 },
             });
         }

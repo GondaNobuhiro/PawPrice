@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import WatchButton from '@/src/components/watch-button';
-
+import PushSubscribeButton from '@/src/components/push-subscribe-button';
 
 type ProductResponse = {
   id: string;
@@ -107,6 +107,9 @@ export default async function Home({ searchParams }: Props) {
               <Link href="/notifications" className="text-blue-600 underline">
                 通知一覧を見る
               </Link>
+            </div>
+            <div className="mt-3">
+              <PushSubscribeButton />
             </div>
           </div>
 
