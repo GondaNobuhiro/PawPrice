@@ -6,18 +6,6 @@ import SortSelect from '@/src/components/sort-select';
 import PetTypeFilter from '@/src/components/pet-type-filter';
 import Pagination from '@/src/components/pagination';
 
-type ProductsApiResponse = {
-    items: ProductResponse[];
-    pagination: {
-        page: number;
-        limit: number;
-        totalCount: number;
-        totalPages: number;
-        hasPreviousPage: boolean;
-        hasNextPage: boolean;
-    };
-};
-
 type ProductResponse = {
     id: string;
     name: string;
@@ -47,11 +35,29 @@ type ProductResponse = {
     };
 };
 
-type CategoryResponse = {
+type Category = {
     id: string;
     code: string;
     name: string;
 };
+
+type ProductsApiResponse = {
+    items: ProductResponse[];
+    pagination: {
+        page: number;
+        limit: number;
+        totalCount: number;
+        totalPages: number;
+        hasPreviousPage: boolean;
+        hasNextPage: boolean;
+    };
+};
+
+function petTypeLabel(type: string) {
+    if (type === 'dog') return '犬';
+    if (type === 'cat') return '猫';
+    return type;
+}
 
 async function getProducts(
     q?: string,
@@ -84,7 +90,7 @@ async function getProducts(
     return res.json();
 }
 
-async function getCategories(): Promise<CategoryResponse[]> {
+async function getCategories(): Promise<Category[]> {
     const res = await fetch('http://localhost:3000/api/categories', {
         cache: 'no-store',
     });
@@ -106,20 +112,7 @@ type Props = {
     }>;
 };
 
-function petTypeLabel(petType: string): string {
-    switch (petType) {
-        case 'dog':
-            return '犬';
-        case 'cat':
-            return '猫';
-        case 'both':
-            return '犬・猫';
-        default:
-            return petType;
-    }
-}
-
-export default async function Home({searchParams}: Props) {
+export default async function Home({ searchParams }: Props) {
     const params = await searchParams;
     const q = params.q ?? '';
     const category = params.category ?? '';
@@ -136,183 +129,215 @@ export default async function Home({searchParams}: Props) {
     const pagination = productsResponse.pagination;
 
     return (
-        <main className="min-h-screen bg-gray-50 p-8">
-            <div className="mx-auto max-w-6xl">
-                <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                    <h1 className="text-3xl font-bold">PawPrice 商品一覧</h1>
-                    <div className="mt-3">
-                        <PushSubscribeButton/>
+        <main className="min-h-screen bg-[#f8f4ee] px-6 py-8">
+            <div className="mx-auto max-w-6xl space-y-6">
+                <section className="rounded-3xl border border-[#eadfce] bg-[#fffaf3] p-6 shadow-sm">
+                    <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <div className="mb-2 inline-flex rounded-full bg-[#f4e6d2] px-3 py-1 text-xs font-medium text-[#9a6b3d]">
+                                Dog & Cat Price Watch
+                            </div>
+                            <h1 className="text-3xl font-bold tracking-tight text-[#4b3425]">
+                                PawPrice
+                            </h1>
+                            <p className="mt-2 text-sm text-[#7a6657]">
+                                ペット用品の価格を、やさしく見やすく比較
+                            </p>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <PushSubscribeButton />
+                        </div>
                     </div>
-                </div>
+                </section>
 
-                <form className="mb-6 rounded-2xl border bg-white p-4 shadow-sm">
-                    <div className="grid gap-4 md:grid-cols-[1fr_220px_160px_160px_140px]">
-                        <input
-                            type="text"
-                            name="q"
-                            defaultValue={q}
-                            placeholder="商品名で検索"
-                            className="rounded-xl border px-3 py-2"
-                        />
+                <section className="rounded-3xl border border-[#eadfce] bg-white p-5 shadow-sm">
+                    <form>
+                        <div className="grid gap-4 md:grid-cols-[1fr_220px_160px_160px_140px]">
+                            <input
+                                type="text"
+                                name="q"
+                                defaultValue={q}
+                                placeholder="商品名で検索"
+                                className="rounded-2xl border border-[#e6d9c8] bg-[#fffdf9] px-4 py-3 text-sm outline-none transition placeholder:text-[#b49d88] focus:border-[#d8b892]"
+                            />
 
-                        <select
-                            name="category"
-                            defaultValue={category}
-                            className="rounded-xl border px-3 py-2"
-                        >
-                            <option value="">すべてのカテゴリ</option>
-                            {categories.map((cat) => (
-                                <option key={cat.id} value={cat.code}>
-                                    {cat.name}
-                                </option>
-                            ))}
-                        </select>
+                            <select
+                                name="category"
+                                defaultValue={category}
+                                className="rounded-2xl border border-[#e6d9c8] bg-[#fffdf9] px-4 py-3 text-sm outline-none transition focus:border-[#d8b892]"
+                            >
+                                <option value="">カテゴリ</option>
+                                {categories.map((cat) => (
+                                    <option key={cat.id} value={cat.code}>
+                                        {cat.name}
+                                    </option>
+                                ))}
+                            </select>
 
-                        <select
-                            name="petType"
-                            defaultValue={petType}
-                            className="rounded-xl border px-3 py-2"
-                        >
-                            <option value="">すべて</option>
-                            <option value="dog">犬</option>
-                            <option value="cat">猫</option>
-                        </select>
+                            <select
+                                name="petType"
+                                defaultValue={petType}
+                                className="rounded-2xl border border-[#e6d9c8] bg-[#fffdf9] px-4 py-3 text-sm outline-none transition focus:border-[#d8b892]"
+                            >
+                                <option value="">すべて</option>
+                                <option value="dog">犬</option>
+                                <option value="cat">猫</option>
+                            </select>
 
-                        <select
-                            name="sort"
-                            defaultValue={sort}
-                            className="rounded-xl border px-3 py-2"
-                        >
-                            <option value="newest">新着順</option>
-                            <option value="price_asc">安い順</option>
-                        </select>
+                            <select
+                                name="sort"
+                                defaultValue={sort}
+                                className="rounded-2xl border border-[#e6d9c8] bg-[#fffdf9] px-4 py-3 text-sm outline-none transition focus:border-[#d8b892]"
+                            >
+                                <option value="newest">新着順</option>
+                                <option value="price_asc">安い順</option>
+                            </select>
 
-                        <button
-                            type="submit"
-                            className="rounded-xl bg-blue-600 px-4 py-2 text-white"
-                        >
-                            検索
-                        </button>
+                            <button
+                                type="submit"
+                                className="rounded-2xl bg-[#d98f5c] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#c97d49]"
+                            >
+                                検索
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <section className="rounded-3xl border border-[#eadfce] bg-white p-5 shadow-sm">
+                    <CategoryFilterChips
+                        categories={categories}
+                        selectedCategory={category}
+                        q={q}
+                        sort={sort}
+                        petType={petType}
+                    />
+
+                    <PetTypeFilter
+                        q={q}
+                        category={category}
+                        sort={sort}
+                        selectedPetType={petType}
+                    />
+
+                    <SortSelect
+                        q={q}
+                        category={category}
+                        petType={petType}
+                        selectedSort={sort}
+                    />
+                </section>
+
+                <div className="flex items-center justify-between">
+                    <div className="text-sm text-[#7a6657]">
+            <span className="font-medium text-[#5c4331]">
+              {pagination.totalCount}
+            </span>{' '}
+                        件
                     </div>
-                </form>
-
-                <CategoryFilterChips
-                    categories={categories}
-                    selectedCategory={category}
-                    q={q}
-                    sort={sort}
-                    petType={petType}
-                />
-
-                <PetTypeFilter
-                    q={q}
-                    category={category}
-                    sort={sort}
-                    selectedPetType={petType}
-                />
-
-                <SortSelect
-                    q={q}
-                    category={category}
-                    petType={petType}
-                    selectedSort={sort}
-                />
-
-                <div className="mb-4 text-sm text-gray-600">
-                    {pagination.totalCount}件
                 </div>
 
                 {products.length === 0 ? (
-                    <div className="rounded-2xl border bg-white p-10 text-center text-gray-500 shadow-sm">
+                    <section className="rounded-3xl border border-[#eadfce] bg-white p-10 text-center text-sm text-[#8e7a6c] shadow-sm">
                         条件に一致する商品はありません
-                    </div>
+                    </section>
                 ) : (
                     <>
                         <div className="grid gap-5">
                             {products.map((product) => (
-                                <div
+                                <article
                                     key={product.id}
-                                    className="rounded-2xl border bg-white p-5 shadow-sm"
+                                    className="rounded-3xl border border-[#eadfce] bg-white p-5 shadow-sm transition hover:shadow-md"
                                 >
-                                    <div className="grid gap-5 md:grid-cols-[160px_1fr]">
+                                    <div className="grid gap-5 md:grid-cols-[170px_1fr]">
                                         <div className="flex items-start justify-center">
                                             {product.imageUrl ? (
                                                 <img
                                                     src={product.imageUrl}
                                                     alt={product.name}
-                                                    className="h-40 w-40 rounded-xl border object-contain bg-white p-2"
+                                                    className="h-40 w-40 rounded-2xl border border-[#efe4d7] bg-[#fffaf5] object-contain p-3"
                                                 />
                                             ) : (
-                                                <div className="flex h-40 w-40 items-center justify-center rounded-xl border bg-gray-100 text-sm text-gray-400">
+                                                <div className="flex h-40 w-40 items-center justify-center rounded-2xl border border-[#efe4d7] bg-[#faf5ef] text-sm text-[#baa896]">
                                                     画像なし
                                                 </div>
                                             )}
                                         </div>
 
                                         <div>
-                                            <div className="mb-2 flex flex-wrap gap-2">
-        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
-          {product.category}
-        </span>
+                                            <div className="mb-3 flex flex-wrap gap-2">
+                        <span className="rounded-full bg-[#f5e8d8] px-3 py-1 text-xs font-medium text-[#8b633d]">
+                          {product.category}
+                        </span>
 
-                                                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
-          {petTypeLabel(product.petType)}
-        </span>
+                                                <span className="rounded-full bg-[#f6efe2] px-3 py-1 text-xs font-medium text-[#8d6b4f]">
+                          {petTypeLabel(product.petType)}
+                        </span>
 
                                                 {product.priceSummary.isPriceDown && (
-                                                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
-            値下がり中
-          </span>
+                                                    <span className="rounded-full bg-[#e5f3e8] px-3 py-1 text-xs font-medium text-[#3f7a50]">
+                            値下がり中
+                          </span>
                                                 )}
                                             </div>
 
                                             <Link
                                                 href={`/products/${product.id}`}
-                                                className="mb-2 block text-xl font-semibold text-blue-700 underline-offset-2 hover:underline"
+                                                className="mb-3 block text-xl font-semibold leading-8 text-[#4b3425] transition hover:text-[#c97d49]"
                                             >
                                                 {product.name}
                                             </Link>
 
-                                            <div className="mb-4 space-y-1 text-sm text-gray-600">
-                                                {product.brand && <div>ブランド: {product.brand}</div>}
-                                                {product.packageSize && <div>内容量: {product.packageSize}</div>}
-                                            </div>
+                                            {(product.brand || product.packageSize) && (
+                                                <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#7a6657]">
+                                                    {product.brand && <div>ブランド: {product.brand}</div>}
+                                                    {product.packageSize && (
+                                                        <div>内容量: {product.packageSize}</div>
+                                                    )}
+                                                </div>
+                                            )}
 
-                                            <div className="mb-4 flex flex-wrap gap-3 text-sm">
+                                            <div className="mb-4 flex flex-wrap gap-3">
                                                 {product.priceSummary.latestEffectivePrice != null && (
-                                                    <div className="rounded-xl bg-gray-50 px-3 py-2">
-                                                        <span className="text-gray-500">現在 </span>
-                                                        <span className="font-semibold text-gray-900">
-              ¥{product.priceSummary.latestEffectivePrice.toLocaleString()}
-            </span>
+                                                    <div className="rounded-2xl bg-[#f7f3ed] px-4 py-3 text-sm">
+                                                        <div className="text-xs text-[#8b7b6f]">現在</div>
+                                                        <div className="font-semibold text-[#4b3425]">
+                                                            ¥
+                                                            {product.priceSummary.latestEffectivePrice.toLocaleString()}
+                                                        </div>
                                                     </div>
                                                 )}
 
                                                 {product.priceSummary.historicalMinPrice != null && (
-                                                    <div className="rounded-xl bg-blue-50 px-3 py-2">
-                                                        <span className="text-blue-600">最安 </span>
-                                                        <span className="font-semibold text-blue-700">
-              ¥{product.priceSummary.historicalMinPrice.toLocaleString()}
-            </span>
+                                                    <div className="rounded-2xl bg-[#f5e8d8] px-4 py-3 text-sm">
+                                                        <div className="text-xs text-[#9a6b3d]">最安</div>
+                                                        <div className="font-semibold text-[#8b633d]">
+                                                            ¥
+                                                            {product.priceSummary.historicalMinPrice.toLocaleString()}
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
 
                                             {product.lowestOffer ? (
-                                                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
-                                                    <div className="mb-2 text-sm font-semibold text-blue-800">
+                                                <div className="rounded-3xl border border-[#eadfce] bg-[#fffaf3] p-4">
+                                                    <div className="mb-2 text-sm font-medium text-[#7a6657]">
                                                         最安ショップ
                                                     </div>
 
-                                                    <div className="mb-3 text-sm text-gray-700">
-                                                        {product.lowestOffer.shopType}
-                                                        {product.lowestOffer.sellerName
-                                                            ? ` / ${product.lowestOffer.sellerName}`
-                                                            : ''}
-                                                    </div>
-
-                                                    <div className="mb-3 text-2xl font-bold text-blue-700">
-                                                        ¥{product.lowestOffer.effectivePrice.toLocaleString()}
+                                                    <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                                                        <div>
+                                                            <div className="text-sm text-[#7a6657]">
+                                                                {product.lowestOffer.shopType}
+                                                                {product.lowestOffer.sellerName
+                                                                    ? ` / ${product.lowestOffer.sellerName}`
+                                                                    : ''}
+                                                            </div>
+                                                            <div className="mt-1 text-2xl font-bold text-[#c97d49]">
+                                                                ¥
+                                                                {product.lowestOffer.effectivePrice.toLocaleString()}
+                                                            </div>
+                                                        </div>
                                                     </div>
 
                                                     <div className="flex flex-wrap gap-3">
@@ -320,7 +345,7 @@ export default async function Home({searchParams}: Props) {
                                                             href={product.lowestOffer.externalUrl}
                                                             target="_blank"
                                                             rel="noreferrer"
-                                                            className="rounded-xl bg-blue-600 px-4 py-2 text-sm text-white"
+                                                            className="inline-flex items-center justify-center rounded-2xl bg-[#d98f5c] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#c97d49]"
                                                         >
                                                             商品ページを見る
                                                         </a>
@@ -329,22 +354,24 @@ export default async function Home({searchParams}: Props) {
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="rounded-2xl border bg-gray-50 p-4 text-sm text-gray-500">
+                                                <div className="rounded-2xl border border-[#efe4d7] bg-[#faf5ef] p-4 text-sm text-[#9f8d80]">
                                                     オファー情報がありません
                                                 </div>
                                             )}
                                         </div>
                                     </div>
-                                </div>
+                                </article>
                             ))}
                         </div>
+
                         <Pagination
                             page={pagination.page}
                             totalPages={pagination.totalPages}
                             q={q}
                             category={category}
                             sort={sort}
-                            petType={petType}/>
+                            petType={petType}
+                        />
                     </>
                 )}
             </div>

@@ -3,16 +3,12 @@
 import { useState } from 'react';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; i += 1) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-
-    return outputArray;
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    return Uint8Array.from(rawData, c => c.charCodeAt(0));
 }
 
 export default function PushSubscribeButton() {
@@ -43,8 +39,7 @@ export default function PushSubscribeButton() {
 
             const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
             if (!publicKey) {
-                alert('VAPID 公開鍵が設定されていません');
-                return;
+                throw new Error('NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set');
             }
 
             const existing = await ready.pushManager.getSubscription();
@@ -62,14 +57,14 @@ export default function PushSubscribeButton() {
             });
 
             if (!res.ok) {
-                alert('購読保存に失敗しました');
-                return;
+                const errorText = await res.text();
+                throw new Error(`購読保存に失敗しました: ${res.status} ${errorText}`);
             }
 
-            alert('Webプッシュ通知を有効化しました');
+            alert('通知を有効化しました');
         } catch (error) {
             console.error(error);
-            alert('Webプッシュ通知の設定に失敗しました');
+            alert(error instanceof Error ? error.message : '通知設定に失敗しました');
         } finally {
             setLoading(false);
         }
@@ -80,9 +75,9 @@ export default function PushSubscribeButton() {
             type="button"
             onClick={handleSubscribe}
             disabled={loading}
-            className="rounded-xl bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-50"
+            className="rounded-xl bg-[#d98f5c] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#c97d49] disabled:opacity-50"
         >
-            {loading ? '設定中...' : 'Webプッシュ通知を有効化'}
+            {loading ? '設定中...' : '通知を有効化'}
         </button>
     );
 }

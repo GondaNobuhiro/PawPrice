@@ -2,9 +2,15 @@ import type { Metadata } from 'next';
 import './globals.css';
 import AppHeader from '@/src/components/app-header';
 
-export const metadata: Metadata = {
-  title: 'PawPrice',
-  description: 'ペット用品の価格比較サービス',
+export const metadata = {
+    title: 'PawPrice',
+    description: 'ペット用品の価格比較',
+    icons: {
+        icon: [
+            { url: '/favicon.ico' },
+            { url: '/icon.png', type: 'image/png' },
+        ],
+    },
 };
 
 export default function RootLayout({

@@ -36,8 +36,8 @@ export default function SortSelect({
     ];
 
     return (
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-            <div className="text-sm font-medium text-gray-700">並び替え</div>
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+            <div className="text-sm font-medium text-[#7a6657]">並び替え</div>
 
             <div className="flex flex-wrap gap-2">
                 {options.map((option) => (
@@ -46,8 +46,8 @@ export default function SortSelect({
                         href={buildHref(q, category, petType, option.value)}
                         className={`rounded-full px-4 py-2 text-sm transition ${
                             selectedSort === option.value
-                                ? 'bg-gray-900 text-white'
-                                : 'border bg-white text-gray-700 hover:bg-gray-50'
+                                ? 'bg-[#c97d49] text-white'
+                                : 'border border-[#eadfce] bg-[#fffaf3] text-[#7a6657] hover:bg-[#f5e8d8]'
                         }`}
                     >
                         {option.label}

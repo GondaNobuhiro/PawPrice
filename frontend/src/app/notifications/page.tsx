@@ -40,7 +40,7 @@ export default async function NotificationsPage() {
     const notifications = await getNotifications();
 
     return (
-        <main className="min-h-screen bg-gray-50 p-8">
+        <main className="min-h-screen bg-[#f8f4ee] px-6 py-8">
             <div className="mx-auto max-w-5xl">
                 <div className="mb-6 flex items-center justify-between">
                     <h1 className="text-3xl font-bold">通知一覧</h1>
@@ -48,7 +48,7 @@ export default async function NotificationsPage() {
                 </div>
 
                 {notifications.length === 0 ? (
-                    <div className="rounded-xl border bg-white p-8 text-center text-gray-600 shadow-sm">
+                    <div className="rounded-3xl border border-[#eadfce] bg-white p-8 text-center text-gray-600 shadow-sm">
                         通知はありません
                     </div>
                 ) : (
@@ -56,7 +56,7 @@ export default async function NotificationsPage() {
                         {notifications.map((notification) => (
                             <div
                                 key={notification.id}
-                                className={`rounded-xl border p-4 shadow-sm ${
+                                className={`rounded-3xl border border-[#eadfce] p-4 shadow-sm ${
                                     notification.isRead
                                         ? 'bg-white'
                                         : 'border-blue-300 bg-blue-50'

@@ -40,15 +40,15 @@ export default function CategoryFilterChips({
                                             }: Props) {
     return (
         <div className="mb-6">
-            <div className="mb-2 text-sm font-medium text-gray-700">カテゴリ</div>
+            <div className="mb-2 text-sm font-medium text-[#7a6657]">カテゴリ</div>
 
             <div className="flex flex-wrap gap-2">
                 <Link
                     href={buildHref('', q, sort, petType)}
                     className={`rounded-full px-4 py-2 text-sm transition ${
                         selectedCategory === ''
-                            ? 'bg-blue-600 text-white'
-                            : 'border bg-white text-gray-700 hover:bg-gray-50'
+                            ? 'bg-[#d98f5c] text-white'
+                            : 'border border-[#eadfce] bg-[#fffaf3] text-[#7a6657] hover:bg-[#f5e8d8]'
                     }`}
                 >
                     すべて
@@ -60,8 +60,8 @@ export default function CategoryFilterChips({
                         href={buildHref(category.code, q, sort, petType)}
                         className={`rounded-full px-4 py-2 text-sm transition ${
                             selectedCategory === category.code
-                                ? 'bg-blue-600 text-white'
-                                : 'border bg-white text-gray-700 hover:bg-gray-50'
+                                ? 'bg-[#d98f5c] text-white'
+                                : 'border border-[#eadfce] bg-[#fffaf3] text-[#7a6657] hover:bg-[#f5e8d8]'
                         }`}
                     >
                         {category.name}

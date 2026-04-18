@@ -32,9 +32,7 @@ export default function NotificationBell() {
                 cache: 'no-store',
             });
 
-            if (!res.ok) {
-                return;
-            }
+            if (!res.ok) return;
 
             const data: { unreadCount: number } = await res.json();
             setUnreadCount(data.unreadCount);
@@ -51,9 +49,7 @@ export default function NotificationBell() {
                 cache: 'no-store',
             });
 
-            if (!res.ok) {
-                return;
-            }
+            if (!res.ok) return;
 
             const data: NotificationPreviewItem[] = await res.json();
             setNotifications(data);
@@ -66,12 +62,8 @@ export default function NotificationBell() {
 
     useEffect(() => {
         fetchUnreadCount();
-
         const intervalId = window.setInterval(fetchUnreadCount, 30000);
-
-        return () => {
-            window.clearInterval(intervalId);
-        };
+        return () => window.clearInterval(intervalId);
     }, []);
 
     useEffect(() => {
@@ -81,27 +73,20 @@ export default function NotificationBell() {
 
         const handleClickOutside = (event: MouseEvent) => {
             if (!containerRef.current) return;
-
             if (!containerRef.current.contains(event.target as Node)) {
                 setOpen(false);
             }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [open]);
 
     const handleBellClick = async () => {
         setOpen((prev) => !prev);
     };
 
-    const handleOpenNotification = async (
-        notificationId: string,
-        productId: string,
-    ) => {
+    const handleOpenNotification = async (notificationId: string, productId: string) => {
         try {
             setLoading(true);
 
@@ -155,24 +140,24 @@ export default function NotificationBell() {
                 type="button"
                 onClick={handleBellClick}
                 disabled={loading}
-                className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border bg-white shadow-sm transition hover:bg-gray-50 disabled:opacity-50"
+                className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#eadfce] bg-[#fffdf9] shadow-sm transition hover:bg-[#f8f0e5] disabled:opacity-50"
                 aria-label="通知一覧"
                 title="通知一覧"
             >
-                <Bell className="h-5 w-5 text-gray-700" />
+                <Bell className="h-5 w-5 text-[#7a6657]" />
                 {unreadCount > 0 && (
-                    <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                    <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[#d98f5c] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
                 )}
             </button>
 
             {open && (
-                <div className="absolute right-0 top-14 z-50 w-[360px] overflow-hidden rounded-2xl border bg-white shadow-xl">
-                    <div className="flex items-center justify-between border-b px-4 py-3">
-                        <div className="text-sm font-semibold text-gray-900">通知</div>
+                <div className="absolute right-0 top-14 z-50 w-[360px] overflow-hidden rounded-3xl border border-[#eadfce] bg-[#fffdf9] shadow-xl">
+                    <div className="flex items-center justify-between border-b border-[#efe4d7] px-4 py-3">
+                        <div className="text-sm font-semibold text-[#4b3425]">通知</div>
                         {unreadCount > 0 && (
-                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                            <span className="rounded-full bg-[#f5e8d8] px-2 py-0.5 text-xs font-medium text-[#9a6b3d]">
                 未読 {unreadCount}
               </span>
                         )}
@@ -180,47 +165,38 @@ export default function NotificationBell() {
 
                     <div className="max-h-[420px] overflow-y-auto">
                         {previewLoading ? (
-                            <div className="p-4 text-sm text-gray-500">
-                                読み込み中...
-                            </div>
+                            <div className="p-4 text-sm text-[#8e7a6c]">読み込み中...</div>
                         ) : notifications.length === 0 ? (
-                            <div className="p-4 text-sm text-gray-500">
-                                通知はありません
-                            </div>
+                            <div className="p-4 text-sm text-[#8e7a6c]">通知はありません</div>
                         ) : (
                             notifications.map((notification) => (
                                 <button
                                     key={notification.id}
                                     type="button"
                                     onClick={() =>
-                                        handleOpenNotification(
-                                            notification.id,
-                                            notification.product.id,
-                                        )
+                                        handleOpenNotification(notification.id, notification.product.id)
                                     }
-                                    className={`block w-full border-b px-4 py-3 text-left transition hover:bg-gray-50 ${
-                                        notification.isRead ? 'bg-white' : 'bg-blue-50'
+                                    className={`block w-full border-b border-[#f1e7db] px-4 py-3 text-left transition hover:bg-[#faf4eb] ${
+                                        notification.isRead ? 'bg-white' : 'bg-[#fff6ec]'
                                     }`}
                                 >
                                     <div className="mb-1 flex items-center gap-2">
                                         {!notification.isRead && (
-                                            <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                                            <span className="rounded-full bg-[#d98f5c] px-2 py-0.5 text-[10px] font-bold text-white">
                         未読
                       </span>
                                         )}
-                                        <div className="line-clamp-1 text-sm font-semibold text-gray-900">
+                                        <div className="line-clamp-1 text-sm font-semibold text-[#4b3425]">
                                             {notification.subject}
                                         </div>
                                     </div>
 
-                                    <div className="line-clamp-2 text-xs text-gray-600">
+                                    <div className="line-clamp-2 text-xs text-[#7a6657]">
                                         {notification.body}
                                     </div>
 
-                                    <div className="mt-2 flex items-center justify-between text-[11px] text-gray-400">
-                    <span className="line-clamp-1">
-                      {notification.product.name}
-                    </span>
+                                    <div className="mt-2 flex items-center justify-between text-[11px] text-[#9f8d80]">
+                                        <span className="line-clamp-1">{notification.product.name}</span>
                                         <span>
                       {new Date(notification.createdAt).toLocaleString('ja-JP', {
                           month: '2-digit',
@@ -235,11 +211,11 @@ export default function NotificationBell() {
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between gap-2 border-t px-4 py-3">
+                    <div className="flex items-center justify-between gap-2 border-t border-[#efe4d7] px-4 py-3">
                         <button
                             type="button"
                             onClick={handleOpenAll}
-                            className="text-sm text-blue-600 underline"
+                            className="text-sm text-[#c97d49] underline"
                         >
                             通知一覧を見る
                         </button>
@@ -247,7 +223,7 @@ export default function NotificationBell() {
                         <Link
                             href="/notifications"
                             onClick={() => setOpen(false)}
-                            className="text-sm text-gray-500 hover:text-gray-700"
+                            className="text-sm text-[#8e7a6c] hover:text-[#5c4331]"
                         >
                             閉じる
                         </Link>

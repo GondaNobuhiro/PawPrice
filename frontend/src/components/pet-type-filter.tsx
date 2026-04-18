@@ -38,7 +38,7 @@ export default function PetTypeFilter({
 
     return (
         <div className="mb-6">
-            <div className="mb-2 text-sm font-medium text-gray-700">ペット</div>
+            <div className="mb-2 text-sm font-medium text-[#7a6657]">ペット</div>
 
             <div className="flex flex-wrap gap-2">
                 {options.map((option) => (
@@ -47,8 +47,8 @@ export default function PetTypeFilter({
                         href={buildHref(q, category, sort, option.value)}
                         className={`rounded-full px-4 py-2 text-sm transition ${
                             selectedPetType === option.value
-                                ? 'bg-emerald-600 text-white'
-                                : 'border bg-white text-gray-700 hover:bg-gray-50'
+                                ? 'bg-[#8fb996] text-white'
+                                : 'border border-[#eadfce] bg-[#fffaf3] text-[#7a6657] hover:bg-[#eef6ef]'
                         }`}
                     >
                         {option.label}

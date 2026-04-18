@@ -38,7 +38,7 @@ export default async function WatchlistsPage() {
     const watchlists = await getWatchlists();
 
     return (
-        <main className="min-h-screen bg-gray-50 p-8">
+        <main className="min-h-screen bg-[#f8f4ee] px-6 py-8">
             <div className="mx-auto max-w-5xl">
                 <h1 className="mb-6 text-3xl font-bold">ウォッチリスト</h1>
 
@@ -46,7 +46,7 @@ export default async function WatchlistsPage() {
                     {watchlists.map((item) => (
                         <div
                             key={item.id}
-                            className="rounded-xl border bg-white p-4 shadow-sm"
+                            className="rounded-3xl border border-[#eadfce] bg-white p-4 shadow-sm"
                         >
                             <Link
                                 href={`/products/${item.product.id}`}
