@@ -59,6 +59,15 @@ async function main() {
         { name: 'アイリスオーヤマ' },
         { name: 'ライオンペット' },
         { name: 'ペティオ' },
+        { name: 'ヒルズ' },
+        { name: 'ニュートロ' },
+        { name: 'ピュリナ' },
+        { name: 'シーバ' },
+        { name: 'カルカン' },
+        { name: 'いなば' },
+        { name: 'デオトイレ' },
+        { name: 'デオシート' },
+        { name: 'ニャンとも清潔トイレ' },
     ] as const;
 
     for (const brand of brands) {
@@ -67,6 +76,78 @@ async function main() {
             update: {},
             create: {
                 name: brand.name,
+            },
+        });
+    }
+
+    const brandRules = [
+        { brandName: 'ロイヤルカナン', keyword: 'ロイヤルカナン', priority: 10 },
+        { brandName: 'ロイヤルカナン', keyword: 'royal canin', priority: 20 },
+
+        { brandName: 'ユニ・チャーム', keyword: 'ユニ・チャーム', priority: 10 },
+        { brandName: 'ユニ・チャーム', keyword: 'unicharm', priority: 20 },
+
+        { brandName: '花王', keyword: '花王', priority: 10 },
+
+        { brandName: 'アイリスオーヤマ', keyword: 'アイリスオーヤマ', priority: 10 },
+        { brandName: 'アイリスオーヤマ', keyword: 'iris ohyama', priority: 20 },
+
+        { brandName: 'ライオンペット', keyword: 'ライオンペット', priority: 10 },
+        { brandName: 'ライオンペット', keyword: 'lion pet', priority: 20 },
+
+        { brandName: 'ペティオ', keyword: 'ペティオ', priority: 10 },
+        { brandName: 'ペティオ', keyword: 'petio', priority: 20 },
+
+        { brandName: 'ヒルズ', keyword: 'ヒルズ', priority: 10 },
+        { brandName: 'ヒルズ', keyword: "hill's", priority: 20 },
+        { brandName: 'ヒルズ', keyword: 'science diet', priority: 30 },
+
+        { brandName: 'ニュートロ', keyword: 'ニュートロ', priority: 10 },
+        { brandName: 'ニュートロ', keyword: 'nutro', priority: 20 },
+
+        { brandName: 'ピュリナ', keyword: 'ピュリナ', priority: 10 },
+        { brandName: 'ピュリナ', keyword: 'purina', priority: 20 },
+
+        { brandName: 'シーバ', keyword: 'シーバ', priority: 10 },
+        { brandName: 'カルカン', keyword: 'カルカン', priority: 10 },
+        { brandName: 'いなば', keyword: 'いなば', priority: 10 },
+
+        { brandName: 'デオトイレ', keyword: 'デオトイレ', priority: 5 },
+        { brandName: 'デオシート', keyword: 'デオシート', priority: 5 },
+        { brandName: 'ニャンとも清潔トイレ', keyword: 'ニャンとも清潔トイレ', priority: 5 },
+    ] as const;
+
+    for (const rule of brandRules) {
+        const brand = await prisma.brand.findUnique({
+            where: {
+                name: rule.brandName,
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        if (!brand) {
+            console.warn(`brand not found for brandRule: ${rule.brandName}`);
+            continue;
+        }
+
+        await prisma.brandRule.upsert({
+            where: {
+                brandId_keyword: {
+                    brandId: brand.id,
+                    keyword: rule.keyword,
+                },
+            },
+            update: {
+                priority: rule.priority,
+                isActive: true,
+            },
+            create: {
+                brandId: brand.id,
+                keyword: rule.keyword,
+                priority: rule.priority,
+                isActive: true,
             },
         });
     }

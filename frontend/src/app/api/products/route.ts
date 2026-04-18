@@ -1,6 +1,48 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/src/app/lib/prisma';
 
+type HistoryPoint = {
+    fetchedAt: Date;
+    effectivePrice: number;
+};
+
+function getHourlyBucketKey(date: Date): string {
+    const y = date.getUTCFullYear();
+    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(date.getUTCDate()).padStart(2, '0');
+    const h = String(date.getUTCHours()).padStart(2, '0');
+    return `${y}-${m}-${d}T${h}:00:00Z`;
+}
+
+function buildGroupedMinPrices(histories: HistoryPoint[]) {
+    const bucketMap = new Map<
+        string,
+        {
+            fetchedAt: Date;
+            minPrice: number;
+        }
+    >();
+
+    for (const history of histories) {
+        const bucketKey = getHourlyBucketKey(history.fetchedAt);
+
+        if (!bucketMap.has(bucketKey)) {
+            bucketMap.set(bucketKey, {
+                fetchedAt: new Date(bucketKey),
+                minPrice: history.effectivePrice,
+            });
+            continue;
+        }
+
+        const current = bucketMap.get(bucketKey)!;
+        current.minPrice = Math.min(current.minPrice, history.effectivePrice);
+    }
+
+    return Array.from(bucketMap.values()).sort(
+        (a, b) => b.fetchedAt.getTime() - a.fetchedAt.getTime(),
+    );
+}
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
 
@@ -50,34 +92,79 @@ export async function GET(request: Request) {
                 orderBy: {
                     effectivePrice: 'asc',
                 },
+                include: {
+                    priceHistories: {
+                        orderBy: {
+                            fetchedAt: 'desc',
+                        },
+                        take: 20,
+                    },
+                },
             },
         },
     });
 
-    const mapped = products.map((product) => ({
-        id: product.id.toString(),
-        name: product.name,
-        category: product.category.name,
-        categoryCode: product.category.code,
-        brand: product.brand?.name ?? null,
-        petType: product.petType,
-        packageSize: product.packageSize,
-        imageUrl: product.imageUrl,
-        createdAt: product.createdAt,
-        offersCount: product.offers.length,
-        lowestOffer: product.offers[0]
-            ? {
-                shopType: product.offers[0].shopType,
-                sellerName: product.offers[0].sellerName,
-                title: product.offers[0].title,
-                price: product.offers[0].price,
-                shippingFee: product.offers[0].shippingFee,
-                pointAmount: product.offers[0].pointAmount,
-                effectivePrice: product.offers[0].effectivePrice,
-                externalUrl: product.offers[0].externalUrl,
-            }
-            : null,
-    }));
+    const mapped = products.map((product) => {
+        const lowestOffer = product.offers[0] ?? null;
+        const allHistories = product.offers.flatMap((offer) =>
+            offer.priceHistories.map((history) => ({
+                fetchedAt: history.fetchedAt,
+                effectivePrice: history.effectivePrice,
+            })),
+        );
+
+        const groupedMinPrices = buildGroupedMinPrices(allHistories);
+
+        const latestSnapshot = groupedMinPrices[0] ?? null;
+        const previousSnapshot = groupedMinPrices[1] ?? null;
+
+        const latestEffectivePrice =
+            latestSnapshot?.minPrice ?? lowestOffer?.effectivePrice ?? null;
+
+        const historicalMinPrice =
+            groupedMinPrices.length > 0
+                ? Math.min(...groupedMinPrices.map((snapshot) => snapshot.minPrice))
+                : lowestOffer?.effectivePrice ?? null;
+
+        const latestDiffFromPrevious =
+            latestSnapshot && previousSnapshot
+                ? latestSnapshot.minPrice - previousSnapshot.minPrice
+                : null;
+
+        const isPriceDown =
+            latestDiffFromPrevious != null && latestDiffFromPrevious < 0;
+
+        return {
+            id: product.id.toString(),
+            name: product.name,
+            category: product.category.name,
+            categoryCode: product.category.code,
+            brand: product.brand?.name ?? null,
+            petType: product.petType,
+            packageSize: product.packageSize,
+            imageUrl: product.imageUrl,
+            createdAt: product.createdAt,
+            offersCount: product.offers.length,
+            lowestOffer: lowestOffer
+                ? {
+                    shopType: lowestOffer.shopType,
+                    sellerName: lowestOffer.sellerName,
+                    title: lowestOffer.title,
+                    price: lowestOffer.price,
+                    shippingFee: lowestOffer.shippingFee,
+                    pointAmount: lowestOffer.pointAmount,
+                    effectivePrice: lowestOffer.effectivePrice,
+                    externalUrl: lowestOffer.externalUrl,
+                }
+                : null,
+            priceSummary: {
+                latestEffectivePrice,
+                historicalMinPrice,
+                latestDiffFromPrevious,
+                isPriceDown,
+            },
+        };
+    });
 
     if (sort === 'price_asc') {
         mapped.sort((a, b) => {

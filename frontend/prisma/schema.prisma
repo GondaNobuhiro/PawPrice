@@ -31,12 +31,27 @@ model Category {
 }
 
 model Brand {
-  id        BigInt    @id @default(autoincrement())
-  name      String    @unique
-  createdAt DateTime  @default(now()) @map("created_at")
-  products  Product[]
+  id         BigInt      @id @default(autoincrement())
+  name       String      @unique
+  products   Product[]
+  brandRules BrandRule[]
 
   @@map("brands")
+}
+
+model BrandRule {
+  id        BigInt   @id @default(autoincrement())
+  brandId   BigInt   @map("brand_id")
+  keyword   String
+  priority  Int      @default(100)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  brand Brand @relation(fields: [brandId], references: [id])
+
+  @@unique([brandId, keyword])
+  @@map("brand_rules")
 }
 
 model Product {
