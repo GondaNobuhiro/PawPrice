@@ -11,10 +11,9 @@
     "lint": "eslint",
     "check:notifications": "tsx prisma/check-notifications.ts",
     "send:notifications": "tsx prisma/send-notifications.ts",
-    "fetch:rakuten": "tsx prisma/fetch-rakuten-items.ts",
+    "discover:products": "tsx prisma/discover-products.ts",
+    "update:prices": "tsx prisma/update-prices.ts",
     "import:rakuten-genres": "tsx prisma/import-rakuten-genres.ts",
-    "import:rakuten-genre-items": "tsx prisma/import-rakuten-genre-items.ts",
-    "reconcile:products": "tsx prisma/reconcile-products.ts",
     "classify:categories": "tsx prisma/classify-categories.ts",
     "classify:categories:dry": "tsx prisma/classify-categories.ts --dry-run"
   },

@@ -20,7 +20,7 @@ type ProductResponse = {
         shopType: string;
         sellerName: string | null;
         price: number;
-        shippingFee: number;
+        shippingFee: number | null;
         pointAmount: number;
         effectivePrice: number;
         externalUrl: string;

@@ -93,7 +93,7 @@ model ProductOffer {
   title              String
   sellerName         String?  @map("seller_name")
   price              Int
-  shippingFee        Int      @default(0) @map("shipping_fee")
+  shippingFee        Int?     @map("shipping_fee")
   pointAmount        Int      @default(0) @map("point_amount")
   effectivePrice     Int      @map("effective_price")
   currency           String   @default("JPY")
@@ -116,7 +116,7 @@ model PriceHistory {
   id             BigInt   @id @default(autoincrement())
   productOfferId BigInt   @map("product_offer_id")
   price          Int
-  shippingFee    Int      @default(0) @map("shipping_fee")
+  shippingFee    Int?     @map("shipping_fee")
   pointAmount    Int      @default(0) @map("point_amount")
   effectivePrice Int      @map("effective_price")
   fetchedAt      DateTime @map("fetched_at")

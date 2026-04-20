@@ -13,7 +13,7 @@ type Offer = {
     shopType: string;
     title: string;
     price: number;
-    shippingFee: number;
+    shippingFee: number | null;
     pointAmount: number;
     effectivePrice: number;
     externalUrl: string;
@@ -59,6 +59,12 @@ function petTypeLabel(petType: string): string {
 
 function formatCurrency(value: number): string {
     return `¥${value.toLocaleString()}`;
+}
+
+function formatShipping(fee: number | null): string {
+    if (fee === null) return '送料別';
+    if (fee === 0) return '送料無料';
+    return `送料 ${formatCurrency(fee)}`;
 }
 
 type Props = {
@@ -142,7 +148,7 @@ export default async function ProductDetailPage({ params }: Props) {
                                 </div>
                                 <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
                                     <span>価格 {formatCurrency(lowestOffer.price)}</span>
-                                    <span>送料 {formatCurrency(lowestOffer.shippingFee)}</span>
+                                    <span>{formatShipping(lowestOffer.shippingFee)}</span>
                                     <span>{lowestOffer.pointAmount.toLocaleString()}pt</span>
                                 </div>
                             </div>
@@ -208,8 +214,7 @@ export default async function ProductDetailPage({ params }: Props) {
                                                     {formatCurrency(offer.effectivePrice)}
                                                 </div>
                                                 <div className="mt-1 text-xs text-gray-500">
-                                                    価格 {formatCurrency(offer.price)} / 送料{' '}
-                                                    {formatCurrency(offer.shippingFee)} /{' '}
+                                                    価格 {formatCurrency(offer.price)} / {formatShipping(offer.shippingFee)} /{' '}
                                                     {offer.pointAmount.toLocaleString()}pt
                                                 </div>
                                             </div>

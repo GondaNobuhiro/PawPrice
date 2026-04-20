@@ -41,8 +41,8 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
-      - name: Fetch Rakuten items
-        run: npm run fetch:rakuten
+      - name: Update prices
+        run: npm run update:prices
 
       - name: Check notifications
         run: npm run check:notifications
