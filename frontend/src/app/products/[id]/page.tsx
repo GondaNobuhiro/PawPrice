@@ -143,13 +143,16 @@ export default async function ProductDetailPage({ params }: Props) {
                                 <div className="mb-2 text-sm text-gray-600">
                                     {lowestOffer.sellerName ?? '-'}
                                 </div>
+                                <div className="text-xs text-gray-500">実質価格</div>
                                 <div className="text-3xl font-bold text-blue-700">
                                     {formatCurrency(lowestOffer.effectivePrice)}
                                 </div>
-                                <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
+                                <div className="mt-2 flex flex-wrap gap-3 text-sm text-gray-600">
                                     <span>価格 {formatCurrency(lowestOffer.price)}</span>
+                                    {lowestOffer.pointAmount > 0 && (
+                                        <span className="text-orange-600">− ポイント還元 {formatCurrency(lowestOffer.pointAmount)}</span>
+                                    )}
                                     <span>{formatShipping(lowestOffer.shippingFee)}</span>
-                                    <span>{lowestOffer.pointAmount.toLocaleString()}pt</span>
                                 </div>
                             </div>
 
@@ -210,12 +213,16 @@ export default async function ProductDetailPage({ params }: Props) {
                                             </div>
 
                                             <div className="text-right">
+                                                <div className="text-xs text-gray-400">実質価格</div>
                                                 <div className="text-2xl font-bold text-gray-900">
                                                     {formatCurrency(offer.effectivePrice)}
                                                 </div>
-                                                <div className="mt-1 text-xs text-gray-500">
-                                                    価格 {formatCurrency(offer.price)} / {formatShipping(offer.shippingFee)} /{' '}
-                                                    {offer.pointAmount.toLocaleString()}pt
+                                                <div className="mt-1 flex flex-wrap justify-end gap-2 text-xs text-gray-500">
+                                                    <span>価格 {formatCurrency(offer.price)}</span>
+                                                    {offer.pointAmount > 0 && (
+                                                        <span className="text-orange-600">− ポイント還元 {formatCurrency(offer.pointAmount)}</span>
+                                                    )}
+                                                    <span>{formatShipping(offer.shippingFee)}</span>
                                                 </div>
                                             </div>
                                         </div>

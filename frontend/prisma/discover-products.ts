@@ -159,16 +159,12 @@ async function ensureCategoryForGenre(
 }
 
 // ---- ブランド解決 ----
-async function resolveBrandId(itemName: string): Promise<bigint | null> {
+type BrandRule = { keyword: string; brandId: bigint; priority: number };
+
+function resolveBrandId(itemName: string, brandRules: BrandRule[]): bigint | null {
     const normalized = itemName.normalize('NFKC').toLowerCase();
-    const rules = await prisma.brandRule.findMany({
-        where: { isActive: true },
-        include: { brand: { select: { id: true } } },
-    });
-    for (const rule of rules.sort((a, b) => a.priority - b.priority || b.keyword.length - a.keyword.length)) {
-        if (normalized.includes(rule.keyword.normalize('NFKC').toLowerCase())) {
-            return rule.brand.id;
-        }
+    for (const rule of brandRules) {
+        if (normalized.includes(rule.keyword)) return rule.brandId;
     }
     return null;
 }
@@ -180,11 +176,12 @@ async function findOrCreateProduct(params: {
     itemCaption?: string | null;
     petType: string;
     imageUrl: string | null;
+    brandRules: BrandRule[];
 }): Promise<{ id: bigint; created: boolean }> {
     const sourceText = [params.itemName, params.itemCaption ?? ''].join(' ');
     const normalizedName = normalizeProductName(params.itemName);
     const packageSize = extractPackageSize(params.itemName);
-    const brandId = await resolveBrandId(params.itemName);
+    const brandId = resolveBrandId(params.itemName, params.brandRules);
     const janCode = extractJanCode(sourceText);
     const modelNumber = extractModelNumber(sourceText);
 
@@ -192,9 +189,9 @@ async function findOrCreateProduct(params: {
         const match = await prisma.product.findFirst({ where: { janCode }, select: { id: true } });
         if (match) return { id: match.id, created: false };
     }
-    if (modelNumber) {
+    if (modelNumber && brandId) {
         const match = await prisma.product.findFirst({
-            where: { modelNumber, ...(brandId ? { brandId } : {}) },
+            where: { modelNumber, brandId },
             select: { id: true },
         });
         if (match) return { id: match.id, created: false };
@@ -346,6 +343,14 @@ async function main() {
     });
     const parentByCode = new Map(parentCategories.map((p) => [p.code, p.id]));
 
+    const rawBrandRules = await prisma.brandRule.findMany({
+        where: { isActive: true },
+        include: { brand: { select: { id: true } } },
+    });
+    const brandRules: BrandRule[] = rawBrandRules
+        .sort((a, b) => a.priority - b.priority || b.keyword.length - a.keyword.length)
+        .map((r) => ({ keyword: r.keyword.normalize('NFKC').toLowerCase(), brandId: r.brand.id, priority: r.priority }));
+
     console.log(`genres=${genres.length}`);
 
     // other配下の既存商品を再分類
@@ -396,6 +401,7 @@ async function main() {
                     itemCaption: item.itemCaption,
                     petType,
                     imageUrl,
+                    brandRules,
                 });
                 if (created) totalCreatedProducts++;
 

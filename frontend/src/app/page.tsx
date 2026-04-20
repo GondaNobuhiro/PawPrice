@@ -337,6 +337,19 @@ export default async function Home({ searchParams }: Props) {
                                                             <div className="mt-1 text-2xl font-bold text-[#c97d49]">
                                                                 ¥{product.lowestOffer.effectivePrice.toLocaleString()}
                                                             </div>
+                                                            <div className="mt-1 flex flex-wrap gap-2 text-xs text-[#9f8d80]">
+                                                                {product.lowestOffer.pointAmount > 0 && (
+                                                                    <span className="rounded-full bg-orange-100 px-2 py-0.5 text-orange-700">
+                                                                        ポイント還元 ¥{product.lowestOffer.pointAmount.toLocaleString()}
+                                                                    </span>
+                                                                )}
+                                                                {product.lowestOffer.shippingFee === null && (
+                                                                    <span>送料別</span>
+                                                                )}
+                                                                {product.lowestOffer.shippingFee === 0 && (
+                                                                    <span className="text-green-700">送料無料</span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
 
