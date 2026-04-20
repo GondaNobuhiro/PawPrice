@@ -16,11 +16,16 @@ if (!applicationId) throw new Error('RAKUTEN_APPLICATION_ID is not set');
 if (!accessKey) throw new Error('RAKUTEN_ACCESS_KEY is not set');
 
 const prisma = new PrismaClient({
-    adapter: new PrismaPg(new Pool({ connectionString })),
+    adapter: new PrismaPg(new Pool({
+        connectionString,
+        max: 3,
+        idleTimeoutMillis: 60000,
+        connectionTimeoutMillis: 10000,
+    })),
 });
 
 // ---- 設定 ----
-const GENRE_CONCURRENCY = 3;   // 並列処理するジャンル数
+const GENRE_CONCURRENCY = 2;   // 並列処理するジャンル数（Neon接続安定性のため抑制）
 const HITS_PER_PAGE = 30;
 const DEFAULT_MAX_PAGES = 5;   // 通常ジャンルの最大ページ数（150件）
 const MAJOR_MAX_PAGES = 15;    // 主要ジャンルの最大ページ数（450件）

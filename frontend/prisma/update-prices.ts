@@ -16,7 +16,12 @@ if (!applicationId) throw new Error('RAKUTEN_APPLICATION_ID is not set');
 if (!accessKey) throw new Error('RAKUTEN_ACCESS_KEY is not set');
 
 const prisma = new PrismaClient({
-    adapter: new PrismaPg(new Pool({ connectionString })),
+    adapter: new PrismaPg(new Pool({
+        connectionString,
+        max: 3,
+        idleTimeoutMillis: 60000,
+        connectionTimeoutMillis: 10000,
+    })),
 });
 
 // ---- 設定 ----
