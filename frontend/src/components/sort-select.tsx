@@ -2,21 +2,21 @@ import Link from 'next/link';
 
 type Props = {
     q: string;
-    category: string;
+    categoryId: string;
     petType: string;
     selectedSort: string;
 };
 
 function buildHref(
     q: string,
-    category: string,
+    categoryId: string,
     petType: string,
     sort: string,
 ): string {
     const params = new URLSearchParams();
 
     if (q) params.set('q', q);
-    if (category) params.set('category', category);
+    if (categoryId) params.set('categoryId', categoryId);
     if (petType) params.set('petType', petType);
     if (sort) params.set('sort', sort);
 
@@ -26,7 +26,7 @@ function buildHref(
 
 export default function SortSelect({
                                        q,
-                                       category,
+                                       categoryId,
                                        petType,
                                        selectedSort,
                                    }: Props) {
@@ -43,7 +43,7 @@ export default function SortSelect({
                 {options.map((option) => (
                     <Link
                         key={option.value}
-                        href={buildHref(q, category, petType, option.value)}
+                        href={buildHref(q, categoryId, petType, option.value)}
                         className={`rounded-full px-4 py-2 text-sm transition ${
                             selectedSort === option.value
                                 ? 'bg-[#c97d49] text-white'

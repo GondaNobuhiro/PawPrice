@@ -14,9 +14,12 @@
     "fetch:rakuten": "tsx prisma/fetch-rakuten-items.ts",
     "import:rakuten-genres": "tsx prisma/import-rakuten-genres.ts",
     "import:rakuten-genre-items": "tsx prisma/import-rakuten-genre-items.ts",
-    "reconcile:products": "tsx prisma/reconcile-products.ts"
+    "reconcile:products": "tsx prisma/reconcile-products.ts",
+    "classify:categories": "tsx prisma/classify-categories.ts",
+    "classify:categories:dry": "tsx prisma/classify-categories.ts --dry-run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
     "@prisma/adapter-pg": "^6.19.3",
     "@prisma/client": "^7.7.0",
     "lucide-react": "^1.8.0",

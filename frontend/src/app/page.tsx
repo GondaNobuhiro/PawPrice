@@ -10,27 +10,26 @@ type ProductResponse = {
     id: string;
     name: string;
     category: string;
-    categoryCode: string;
+    subCategory?: string | null;
     brand: string | null;
     petType: string;
     packageSize: string | null;
     imageUrl: string | null;
-    createdAt: string;
     offersCount: number;
     lowestOffer: {
         shopType: string;
         sellerName: string | null;
-        title: string;
         price: number;
         shippingFee: number;
         pointAmount: number;
         effectivePrice: number;
         externalUrl: string;
+        imageUrl?: string | null;
     } | null;
     priceSummary: {
         latestEffectivePrice: number | null;
         historicalMinPrice: number | null;
-        latestDiffFromPrevious: number | null;
+        latestDiffFromPrevious?: number | null;
         isPriceDown: boolean;
     };
 };
@@ -39,17 +38,16 @@ type Category = {
     id: string;
     code: string;
     name: string;
+    productCount: number;
 };
 
 type ProductsApiResponse = {
     items: ProductResponse[];
     pagination: {
         page: number;
-        limit: number;
+        pageSize: number;
         totalCount: number;
         totalPages: number;
-        hasPreviousPage: boolean;
-        hasNextPage: boolean;
     };
 };
 
@@ -61,7 +59,7 @@ function petTypeLabel(type: string) {
 
 async function getProducts(
     q?: string,
-    category?: string,
+    categoryId?: string,
     sort?: string,
     petType?: string,
     page?: string,
@@ -69,7 +67,7 @@ async function getProducts(
     const params = new URLSearchParams();
 
     if (q) params.set('q', q);
-    if (category) params.set('category', category);
+    if (categoryId) params.set('categoryId', categoryId);
     if (sort) params.set('sort', sort);
     if (petType) params.set('petType', petType);
     if (page) params.set('page', page);
@@ -105,7 +103,7 @@ async function getCategories(): Promise<Category[]> {
 type Props = {
     searchParams: Promise<{
         q?: string;
-        category?: string;
+        categoryId?: string;
         sort?: string;
         petType?: string;
         page?: string;
@@ -115,13 +113,13 @@ type Props = {
 export default async function Home({ searchParams }: Props) {
     const params = await searchParams;
     const q = params.q ?? '';
-    const category = params.category ?? '';
+    const categoryId = params.categoryId ?? '';
     const sort = params.sort ?? 'newest';
     const petType = params.petType ?? '';
     const page = params.page ?? '1';
 
     const [productsResponse, categories] = await Promise.all([
-        getProducts(q, category, sort, petType, page),
+        getProducts(q, categoryId, sort, petType, page),
         getCategories(),
     ]);
 
@@ -163,14 +161,17 @@ export default async function Home({ searchParams }: Props) {
                             />
 
                             <select
-                                name="category"
-                                defaultValue={category}
+                                name="categoryId"
+                                defaultValue={categoryId}
                                 className="rounded-2xl border border-[#e6d9c8] bg-[#fffdf9] px-4 py-3 text-sm outline-none transition focus:border-[#d8b892]"
                             >
                                 <option value="">カテゴリ</option>
                                 {categories.map((cat) => (
-                                    <option key={cat.id} value={cat.code}>
+                                    <option key={cat.id} value={cat.id}>
                                         {cat.name}
+                                        {typeof cat.productCount === 'number'
+                                            ? ` (${cat.productCount})`
+                                            : ''}
                                     </option>
                                 ))}
                             </select>
@@ -207,7 +208,7 @@ export default async function Home({ searchParams }: Props) {
                 <section className="rounded-3xl border border-[#eadfce] bg-white p-5 shadow-sm">
                     <CategoryFilterChips
                         categories={categories}
-                        selectedCategory={category}
+                        selectedCategoryId={categoryId}
                         q={q}
                         sort={sort}
                         petType={petType}
@@ -215,14 +216,14 @@ export default async function Home({ searchParams }: Props) {
 
                     <PetTypeFilter
                         q={q}
-                        category={category}
+                        categoryId={categoryId}
                         sort={sort}
                         selectedPetType={petType}
                     />
 
                     <SortSelect
                         q={q}
-                        category={category}
+                        categoryId={categoryId}
                         petType={petType}
                         selectedSort={sort}
                     />
@@ -274,7 +275,7 @@ export default async function Home({ searchParams }: Props) {
                           {petTypeLabel(product.petType)}
                         </span>
 
-                                                {product.priceSummary.isPriceDown && (
+                                                {product.priceSummary?.isPriceDown && (
                                                     <span className="rounded-full bg-[#e5f3e8] px-3 py-1 text-xs font-medium text-[#3f7a50]">
                             値下がり中
                           </span>
@@ -288,32 +289,32 @@ export default async function Home({ searchParams }: Props) {
                                                 {product.name}
                                             </Link>
 
-                                            {(product.brand || product.packageSize) && (
+                                            {(product.brand || product.packageSize || product.subCategory) && (
                                                 <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#7a6657]">
                                                     {product.brand && <div>ブランド: {product.brand}</div>}
                                                     {product.packageSize && (
                                                         <div>内容量: {product.packageSize}</div>
                                                     )}
+                                                    {product.subCategory && (
+                                                        <div>小分類: {product.subCategory}</div>
+                                                    )}
                                                 </div>
                                             )}
 
                                             <div className="mb-4 flex flex-wrap gap-3">
-                                                {product.priceSummary.latestEffectivePrice != null && (
+                                                {product.priceSummary?.latestEffectivePrice != null && (
                                                     <div className="rounded-2xl bg-[#f7f3ed] px-4 py-3 text-sm">
                                                         <div className="text-xs text-[#8b7b6f]">現在</div>
                                                         <div className="font-semibold text-[#4b3425]">
-                                                            ¥
-                                                            {product.priceSummary.latestEffectivePrice.toLocaleString()}
+                                                            ¥{product.priceSummary.latestEffectivePrice.toLocaleString()}
                                                         </div>
                                                     </div>
                                                 )}
-
-                                                {product.priceSummary.historicalMinPrice != null && (
+                                                {product.priceSummary?.historicalMinPrice != null && (
                                                     <div className="rounded-2xl bg-[#f5e8d8] px-4 py-3 text-sm">
                                                         <div className="text-xs text-[#9a6b3d]">最安</div>
                                                         <div className="font-semibold text-[#8b633d]">
-                                                            ¥
-                                                            {product.priceSummary.historicalMinPrice.toLocaleString()}
+                                                            ¥{product.priceSummary.historicalMinPrice.toLocaleString()}
                                                         </div>
                                                     </div>
                                                 )}
@@ -334,8 +335,7 @@ export default async function Home({ searchParams }: Props) {
                                                                     : ''}
                                                             </div>
                                                             <div className="mt-1 text-2xl font-bold text-[#c97d49]">
-                                                                ¥
-                                                                {product.lowestOffer.effectivePrice.toLocaleString()}
+                                                                ¥{product.lowestOffer.effectivePrice.toLocaleString()}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -368,7 +368,7 @@ export default async function Home({ searchParams }: Props) {
                             page={pagination.page}
                             totalPages={pagination.totalPages}
                             q={q}
-                            category={category}
+                            categoryId={categoryId}
                             sort={sort}
                             petType={petType}
                         />

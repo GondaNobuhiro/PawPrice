@@ -4,18 +4,19 @@ type Category = {
     id: string;
     code: string;
     name: string;
+    productCount?: number;
 };
 
 type Props = {
     categories: Category[];
-    selectedCategory: string;
+    selectedCategoryId: string;
     q: string;
     sort: string;
     petType: string;
 };
 
 function buildHref(
-    categoryCode: string,
+    categoryId: string,
     q: string,
     sort: string,
     petType: string,
@@ -23,7 +24,7 @@ function buildHref(
     const params = new URLSearchParams();
 
     if (q) params.set('q', q);
-    if (categoryCode) params.set('category', categoryCode);
+    if (categoryId) params.set('categoryId', categoryId);
     if (sort) params.set('sort', sort);
     if (petType) params.set('petType', petType);
 
@@ -33,7 +34,7 @@ function buildHref(
 
 export default function CategoryFilterChips({
                                                 categories,
-                                                selectedCategory,
+                                                selectedCategoryId,
                                                 q,
                                                 sort,
                                                 petType,
@@ -46,7 +47,7 @@ export default function CategoryFilterChips({
                 <Link
                     href={buildHref('', q, sort, petType)}
                     className={`rounded-full px-4 py-2 text-sm transition ${
-                        selectedCategory === ''
+                        selectedCategoryId === ''
                             ? 'bg-[#d98f5c] text-white'
                             : 'border border-[#eadfce] bg-[#fffaf3] text-[#7a6657] hover:bg-[#f5e8d8]'
                     }`}
@@ -57,14 +58,17 @@ export default function CategoryFilterChips({
                 {categories.map((category) => (
                     <Link
                         key={category.id}
-                        href={buildHref(category.code, q, sort, petType)}
+                        href={buildHref(category.id, q, sort, petType)}
                         className={`rounded-full px-4 py-2 text-sm transition ${
-                            selectedCategory === category.code
+                            selectedCategoryId === category.id
                                 ? 'bg-[#d98f5c] text-white'
                                 : 'border border-[#eadfce] bg-[#fffaf3] text-[#7a6657] hover:bg-[#f5e8d8]'
                         }`}
                     >
                         {category.name}
+                        {typeof category.productCount === 'number'
+                            ? ` (${category.productCount})`
+                            : ''}
                     </Link>
                 ))}
             </div>

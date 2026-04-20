@@ -4,7 +4,7 @@ type Props = {
     page: number;
     totalPages: number;
     q: string;
-    category: string;
+    categoryId: string;
     sort: string;
     petType: string;
 };
@@ -12,14 +12,14 @@ type Props = {
 function buildHref(
     page: number,
     q: string,
-    category: string,
+    categoryId: string,
     sort: string,
     petType: string,
 ): string {
     const params = new URLSearchParams();
 
     if (q) params.set('q', q);
-    if (category) params.set('category', category);
+    if (categoryId) params.set('categoryId', categoryId);
     if (sort) params.set('sort', sort);
     if (petType) params.set('petType', petType);
     if (page > 1) params.set('page', String(page));
@@ -32,7 +32,7 @@ export default function Pagination({
                                        page,
                                        totalPages,
                                        q,
-                                       category,
+                                       categoryId,
                                        sort,
                                        petType,
                                    }: Props) {
@@ -43,7 +43,7 @@ export default function Pagination({
     return (
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
-                href={buildHref(page - 1, q, category, sort, petType)}
+                href={buildHref(page - 1, q, categoryId, sort, petType)}
                 className={`rounded-xl px-4 py-2 text-sm ${
                     page <= 1
                         ? 'pointer-events-none border bg-gray-100 text-gray-400'
@@ -58,7 +58,7 @@ export default function Pagination({
             </div>
 
             <Link
-                href={buildHref(page + 1, q, category, sort, petType)}
+                href={buildHref(page + 1, q, categoryId, sort, petType)}
                 className={`rounded-xl px-4 py-2 text-sm ${
                     page >= totalPages
                         ? 'pointer-events-none border bg-gray-100 text-gray-400'
