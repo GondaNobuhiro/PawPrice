@@ -1,97 +1,47 @@
 import 'dotenv/config';
-import Anthropic from '@anthropic-ai/sdk';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
 const connectionString = process.env.DATABASE_URL;
-const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-
 if (!connectionString) throw new Error('DATABASE_URL is not set');
-if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY is not set');
 
 const prisma = new PrismaClient({
     adapter: new PrismaPg(new Pool({ connectionString })),
 });
 
-const anthropic = new Anthropic({ apiKey: anthropicApiKey });
-
 const dryRun = process.argv.includes('--dry-run');
-const BATCH_SIZE = 20;
+const BATCH_SIZE = 100;
 
-const PARENT_CATEGORY_DEFINITIONS: Record<string, string> = {
-    food:      'ドッグフード・キャットフード・サプリメント・栄養補助食品・ミルク',
-    snack:     'ペット用おやつ・間食・トリーツ・ガム',
-    toilet:    'ペットシーツ・猫砂・トイレ本体・システムトイレ・消臭砂',
-    dish:      '食器・水飲み・給水器・給餌器・フードスコップ・フードクリップ・計量器',
-    cage:      'ケージ・サークル・ハウス・キャットタワー・ベッド付きハウス',
-    carry:     'キャリーバッグ・ペットカート・お出かけ用バッグ・スリング',
-    toy:       'おもちゃ・ロープ・ボール・しつけ用品・トレーニング用品',
-    deodorant: '消臭剤・脱臭・芳香剤・消臭スプレー',
-    care:      'グルーミング・シャンプー・爪切り・耳ケア・目ヤニ・ブラシ・ノミダニ駆除・スキンケア',
-    wear:      '犬服・猫服・コスチューム・洋服・ウェア・帽子・靴',
-    bed:       'ペット用ベッド・クッション・マット・寝具・ブランケット',
-    outdoor:   '首輪・ハーネス・リード・胴輪・お散歩グッズ',
-    medical:   '動物用医薬品・動物用医療機器・介護用品・応急手当・体温計・包帯',
-    other:     'ペット用品に該当しない、または上記のどれにも当てはまらないもの',
-};
+// Each entry: [parentCode, keywords[]]
+// Matched against category name only (not product names) to avoid false positives.
+// Ordered from specific to general — first match wins.
+// These categories come from Rakuten pet genres, so shorter terms (コート, マット etc.) are safe to use.
+const CLASSIFICATION_RULES: [string, string[]][] = [
+    ['toilet',    ['猫砂', 'ねこ砂', 'ネコ砂', 'システムトイレ', 'ペットシーツ', 'トイレシート', 'トイレシーツ', 'おしっこシート', '消臭砂', 'トイレ砂', 'トイレマット', 'トイレ用品', 'トイレ本体', 'トイレトレー', 'マナーパッド', 'サニタリーパンツ', '食フン防止', 'ペットドア']],
+    ['food',      ['ドッグフード', 'キャットフード', 'ペットフード', 'ドライフード', 'ウェットフード', 'モイストフード', '総合栄養食', 'サプリメント', 'サプリ', '栄養補助', 'ペット用ミルク', '猫用ミルク', '犬用ミルク', '哺乳器', 'ふりかけ', 'トッピング', 'ソーセージ', 'カニかま', 'かまぼこ', 'チップス', '骨・ボーン', 'ちゃんちゃんこ']],
+    ['snack',     ['おやつ', 'トリーツ', 'ガム', 'ジャーキー', '間食', 'ちゅーる', 'チュール', 'スナック']],
+    ['medical',   ['動物用医薬品', '医薬品', '医療機器', '介護用品', '体温計', '包帯', 'ガーゼ', '消毒', '点耳', '点眼', '駆虫', 'フィラリア', 'ノミ取り', 'マダニ', '蚊対策', '虫除け', '皮膚薬', '目薬', '胃腸薬', '下痢止め', '外耳炎薬', '虫下し', '入浴剤', '殺虫用品']],
+    ['deodorant', ['消臭剤', '消臭スプレー', '消臭シート', '脱臭', '芳香剤', '防臭', '消臭・脱臭', '消臭用品', 'フンキャッチャー', 'コロン', 'ブラッシングスプレー']],
+    ['outdoor',   ['首輪', 'ハーネス', 'リード', '胴輪', 'お散歩', 'ロングリード', 'ネームタグ', '迷子札', 'シートベルト', 'チョーカー', 'クリッカー', '無駄吠え防止', 'しつけ用品', 'ネックレス', 'サングラス', 'ゴーグル', 'アクセサリー', 'チャーム', 'ネクタイ']],
+    ['carry',     ['キャリーバッグ', 'キャリーケース', 'キャリーバック', 'ペットカート', 'スリング', 'お出かけバッグ', 'コンテナ', 'カート']],
+    ['cage',      ['ケージ', 'サークル', 'キャットタワー', 'キャットウォーク', '猫タワー', 'ゲート', 'フェンス', 'クレート', 'ハウス', 'トンネル']],
+    ['bed',       ['ペットベッド', 'ペット用ベッド', 'クールマット', 'あったかマット', 'ペット用ブランケット', 'ペット用寝具', 'あご枕', '犬用ベッド', '猫用ベッド', '噛みぐせ防止', '舐めぐせ防止', 'マット', 'ブランケット', '毛布', 'クッション']],
+    ['dish',      ['食器', '水飲み', '給水器', '給餌器', 'ウォーターボウル', 'フードボウル', 'フードスコップ', 'フードクリップ', '計量スプーン', 'ランチョンマット', '水入れ', '携帯水筒']],
+    ['wear',      ['犬服', '猫服', 'ペット服', 'ペット用ウェア', 'コスチューム', 'はっぴ', '着物', '浴衣', '甚平', 'ヘアゴム', 'ヘアピン', 'ヘアアクセ', 'ワードローブ', 'ハンガー', 'コート', 'Tシャツ', 'タンクトップ', 'ベスト', 'ジャケット', 'ブルゾン', 'ジャンパー', 'セーター', 'ニット', 'シャツ', 'トレーナー', 'パーカー', 'ワンピース', 'キャミソール', 'パジャマ', 'パンツ', 'ドレス', 'フォーマル', '袴', 'ジャージ', 'つなぎ', 'カバーオール', 'エプロン']],
+    ['toy',       ['おもちゃ', 'ペット用トイ', 'じゃらし', 'ぬいぐるみ', '競技用タイヤ', 'ハードル', '歩道橋', 'サイコロ', 'シーソー', 'スラローム', 'ポール', 'ロープ（ペット', 'ボール（ペット']],
+    ['care',      ['シャンプー', 'リンス', 'コンディショナー', 'グルーミング', '爪切り', 'ブラシ', 'スリッカー', 'コーム', '耳ケア', '目ヤニ', '歯みがき', '歯ブラシ', 'デンタルケア', 'トリミング', 'バリカン', 'スキンケア', '保湿', '爪ケア', 'ケア用品', 'お手入れ用品', 'はさみ', '抜け毛取り', '肉球ケア', '綿棒', '爪やすり', 'お掃除ローラー', '耳そうじ', '犬用ネイル', '衛生・掃除']],
+];
 
-type CategoryWithProducts = {
-    id: bigint;
-    name: string;
-    code: string;
-    products: { name: string }[];
-};
-
-async function classifyBatch(
-    batch: CategoryWithProducts[],
-    validParentCodes: string[],
-): Promise<Record<string, string>> {
-    const parentList = validParentCodes
-        .map((code) => `- ${code}: ${PARENT_CATEGORY_DEFINITIONS[code] ?? code}`)
-        .join('\n');
-
-    const categoryList = batch
-        .map((cat, i) => {
-            const productSamples =
-                cat.products.length > 0
-                    ? `商品例: ${cat.products.map((p) => p.name.slice(0, 40)).join(' / ')}`
-                    : '商品例: なし';
-            return `${i + 1}. カテゴリ名: "${cat.name}" (${productSamples})`;
-        })
-        .join('\n');
-
-    const message = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        system:
-            'あなたは犬・猫向けペット用品の価格比較サービスのカテゴリ分類アシスタントです。与えられたカテゴリ名と商品例をもとに、最も適切な大分類コードを選んでください。',
-        messages: [
-            {
-                role: 'user',
-                content: `以下のカテゴリを大分類に分類してください。
-
-利用可能な大分類:
-${parentList}
-
-分類対象:
-${categoryList}
-
-番号をキー、大分類コードを値とするJSONのみ回答してください。例: {"1": "food", "2": "care"}`,
-            },
-        ],
-    });
-
-    const text =
-        message.content[0].type === 'text' ? message.content[0].text : '';
-
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-        console.error('Failed to parse LLM response:', text);
-        return {};
+function classifyByKeyword(categoryName: string): string | null {
+    for (const [code, keywords] of CLASSIFICATION_RULES) {
+        for (const kw of keywords) {
+            if (categoryName.includes(kw)) {
+                return code;
+            }
+        }
     }
-
-    return JSON.parse(jsonMatch[0]) as Record<string, string>;
+    return null;
 }
 
 async function main() {
@@ -103,17 +53,21 @@ async function main() {
     const otherCategory = parentCategories.find((c) => c.code === 'other');
     if (!otherCategory) throw new Error('Parent category with code="other" not found');
 
+    const validParentCodes = parentCategories.map((c) => c.code);
     const parentById = new Map(parentCategories.map((c) => [c.code, c.id]));
-    const validParentCodes = Object.keys(PARENT_CATEGORY_DEFINITIONS);
-
 
     const unclassified = await prisma.category.findMany({
-        where: { parentCategoryId: otherCategory.id },
+        where: {
+            OR: [
+                { parentCategoryId: null, code: { notIn: validParentCodes } },
+                { parentCategoryId: otherCategory.id },
+            ],
+        },
         select: {
             id: true,
             name: true,
             code: true,
-            products: { select: { name: true }, take: 5 },
+            parentCategoryId: true,
         },
         orderBy: { id: 'asc' },
     });
@@ -126,18 +80,25 @@ async function main() {
 
     for (let i = 0; i < unclassified.length; i += BATCH_SIZE) {
         const batch = unclassified.slice(i, i + BATCH_SIZE);
-        console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} categories)...`);
 
-        const result = await classifyBatch(batch, validParentCodes);
+        for (const cat of batch) {
+            const assignedCode = classifyByKeyword(cat.name);
 
-        for (let j = 0; j < batch.length; j++) {
-            const cat = batch[j];
-            const assignedCode = result[String(j + 1)];
-            const parentId = assignedCode ? parentById.get(assignedCode) : undefined;
-
-            if (!parentId || assignedCode === 'other') {
+            if (!assignedCode) {
                 keptAsOther += 1;
-                console.log(`[OTHER] "${cat.name}" → other`);
+                console.log(`[OTHER] "${cat.name}"`);
+                if (!dryRun && cat.parentCategoryId === null) {
+                    await prisma.category.update({
+                        where: { id: cat.id },
+                        data: { parentCategoryId: otherCategory.id },
+                    });
+                }
+                continue;
+            }
+
+            const parentId = parentById.get(assignedCode);
+            if (!parentId) {
+                keptAsOther += 1;
                 continue;
             }
 

@@ -201,8 +201,9 @@ async function findOrCreateProduct(params: {
         });
         if (match) return { id: match.id, created: false };
     }
+    // categoryId を除外して検索（同一商品が異なるジャンルで取り込まれても重複しないようにする）
     const nameMatch = await prisma.product.findFirst({
-        where: { categoryId: params.categoryId, petType: params.petType, normalizedName, ...(brandId ? { brandId } : {}) },
+        where: { petType: params.petType, normalizedName, isActive: true, ...(brandId ? { brandId } : {}) },
         select: { id: true },
     });
     if (nameMatch) return { id: nameMatch.id, created: false };
