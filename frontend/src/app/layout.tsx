@@ -8,7 +8,7 @@ export const metadata: Metadata = {
         template: '%s | PawPrice',
     },
     description: '犬・猫用品の最安値をショップ横断で比較。価格推移・ポイント還元込みの実質価格を確認できます。',
-    metadataBase: new URL('https://pawprice.vercel.app'),
+    metadataBase: new URL('https://paw-price.vercel.app'),
     openGraph: {
         type: 'website',
         siteName: 'PawPrice',
