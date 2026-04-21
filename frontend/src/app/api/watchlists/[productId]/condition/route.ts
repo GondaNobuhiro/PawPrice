@@ -1,65 +1,38 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/src/app/lib/prisma';
-
-const DEMO_USER_ID = BigInt(1);
+import { getSessionUserId } from '@/src/app/lib/session';
 
 type Props = {
-    params: Promise<{
-        productId: string;
-    }>;
+    params: Promise<{ productId: string }>;
 };
 
 export async function GET(_: Request, { params }: Props) {
-    const { productId } = await params;
+    const [{ productId }, userId] = await Promise.all([params, getSessionUserId()]);
 
     const watchlist = await prisma.watchlist.findUnique({
-        where: {
-            userId_productId: {
-                userId: DEMO_USER_ID,
-                productId: BigInt(productId),
-            },
-        },
+        where: { userId_productId: { userId, productId: BigInt(productId) } },
         include: {
             watchCondition: true,
             product: {
                 include: {
-                    offers: {
-                        where: {
-                            isActive: true,
-                        },
-                        orderBy: {
-                            effectivePrice: 'asc',
-                        },
-                    },
+                    offers: { where: { isActive: true }, orderBy: { effectivePrice: 'asc' } },
                 },
             },
         },
     });
 
     if (!watchlist) {
-        return NextResponse.json(
-            { message: 'watchlist not found' },
-            { status: 404 },
-        );
+        return NextResponse.json({ message: 'watchlist not found' }, { status: 404 });
     }
 
     const lowestOffer = watchlist.product.offers[0];
-
     let historicalLowestPrice: number | null = null;
 
     if (lowestOffer) {
         const historicalLowest = await prisma.priceHistory.findFirst({
-            where: {
-                productOfferId: lowestOffer.id,
-                fetchedAt: {
-                    lt: lowestOffer.lastFetchedAt,
-                },
-            },
-            orderBy: {
-                effectivePrice: 'asc',
-            },
+            where: { productOfferId: lowestOffer.id, fetchedAt: { lt: lowestOffer.lastFetchedAt } },
+            orderBy: { effectivePrice: 'asc' },
         });
-
         historicalLowestPrice = historicalLowest
             ? historicalLowest.effectivePrice
             : lowestOffer.effectivePrice;
@@ -88,7 +61,7 @@ export async function GET(_: Request, { params }: Props) {
 }
 
 export async function POST(request: Request, { params }: Props) {
-    const { productId } = await params;
+    const [{ productId }, userId] = await Promise.all([params, getSessionUserId()]);
     const body = await request.json();
 
     const mode = body.mode as 'target' | 'lowest' | null;
@@ -98,52 +71,29 @@ export async function POST(request: Request, { params }: Props) {
             : Number(body.targetPrice);
 
     const watchlist = await prisma.watchlist.findUnique({
-        where: {
-            userId_productId: {
-                userId: DEMO_USER_ID,
-                productId: BigInt(productId),
-            },
-        },
-        include: {
-            watchCondition: true,
-        },
+        where: { userId_productId: { userId, productId: BigInt(productId) } },
+        include: { watchCondition: true },
     });
 
     if (!watchlist) {
-        return NextResponse.json(
-            { message: 'watchlist not found' },
-            { status: 404 },
-        );
+        return NextResponse.json({ message: 'watchlist not found' }, { status: 404 });
     }
 
     if (watchlist.watchCondition) {
-        return NextResponse.json(
-            { message: 'watch condition already exists' },
-            { status: 409 },
-        );
+        return NextResponse.json({ message: 'watch condition already exists' }, { status: 409 });
     }
 
     if (mode !== 'target' && mode !== 'lowest') {
-        return NextResponse.json(
-            { message: 'mode is required' },
-            { status: 400 },
-        );
+        return NextResponse.json({ message: 'mode is required' }, { status: 400 });
     }
 
     if (mode === 'target' && targetPrice === null) {
-        return NextResponse.json(
-            { message: 'targetPrice is required when mode is target' },
-            { status: 400 },
-        );
+        return NextResponse.json({ message: 'targetPrice is required when mode is target' }, { status: 400 });
     }
 
     const created = await prisma.watchCondition.create({
         data: {
-            watchlist: {
-                connect: {
-                    id: watchlist.id,
-                },
-            },
+            watchlist: { connect: { id: watchlist.id } },
             targetPrice: mode === 'target' ? targetPrice : null,
             notifyOnPriceDrop: false,
             notifyOnLowest: mode === 'lowest',
@@ -160,40 +110,22 @@ export async function POST(request: Request, { params }: Props) {
 }
 
 export async function DELETE(_: Request, { params }: Props) {
-    const { productId } = await params;
+    const [{ productId }, userId] = await Promise.all([params, getSessionUserId()]);
 
     const watchlist = await prisma.watchlist.findUnique({
-        where: {
-            userId_productId: {
-                userId: DEMO_USER_ID,
-                productId: BigInt(productId),
-            },
-        },
-        include: {
-            watchCondition: true,
-        },
+        where: { userId_productId: { userId, productId: BigInt(productId) } },
+        include: { watchCondition: true },
     });
 
     if (!watchlist) {
-        return NextResponse.json(
-            { message: 'watchlist not found' },
-            { status: 404 },
-        );
+        return NextResponse.json({ message: 'watchlist not found' }, { status: 404 });
     }
 
     if (!watchlist.watchCondition) {
-        return NextResponse.json({
-            message: 'watch condition does not exist',
-        });
+        return NextResponse.json({ message: 'watch condition does not exist' });
     }
 
-    await prisma.watchCondition.delete({
-        where: {
-            watchlistId: watchlist.id,
-        },
-    });
+    await prisma.watchCondition.delete({ where: { watchlistId: watchlist.id } });
 
-    return NextResponse.json({
-        message: 'watch condition deleted',
-    });
+    return NextResponse.json({ message: 'watch condition deleted' });
 }

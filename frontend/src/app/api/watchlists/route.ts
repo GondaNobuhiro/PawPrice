@@ -1,54 +1,46 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/src/app/lib/prisma';
-
-const DEMO_USER_ID = BigInt(1);
+import { getSessionUserId } from '@/src/app/lib/session';
 
 export async function GET() {
+    const userId = await getSessionUserId();
     const watchlists = await prisma.watchlist.findMany({
-        where: {
-            userId: DEMO_USER_ID,
-        },
+        where: { userId },
         include: {
             product: {
                 include: {
                     category: true,
                     brand: true,
-                    offers: {
-                        orderBy: {
-                            effectivePrice: 'asc',
-                        },
-                    },
+                    offers: { orderBy: { effectivePrice: 'asc' } },
                 },
             },
         },
-        orderBy: {
-            createdAt: 'desc',
-        },
+        orderBy: { createdAt: 'desc' },
     });
 
-    const response = watchlists.map((watch) => ({
-        id: watch.id.toString(),
-        createdAt: watch.createdAt,
-        product: {
-            id: watch.product.id.toString(),
-            name: watch.product.name,
-            category: watch.product.category.name,
-            brand: watch.product.brand?.name ?? null,
-            petType: watch.product.petType,
-            packageSize: watch.product.packageSize,
-            imageUrl: watch.product.imageUrl,
-            lowestOffer: watch.product.offers[0]
-                ? {
-                    shopType: watch.product.offers[0].shopType,
-                    price: watch.product.offers[0].price,
-                    effectivePrice: watch.product.offers[0].effectivePrice,
-                    externalUrl: watch.product.offers[0].externalUrl,
-                }
-                : null,
-        },
-    }));
-
-    return NextResponse.json(response);
+    return NextResponse.json(
+        watchlists.map((watch) => ({
+            id: watch.id.toString(),
+            createdAt: watch.createdAt,
+            product: {
+                id: watch.product.id.toString(),
+                name: watch.product.name,
+                category: watch.product.category.name,
+                brand: watch.product.brand?.name ?? null,
+                petType: watch.product.petType,
+                packageSize: watch.product.packageSize,
+                imageUrl: watch.product.imageUrl,
+                lowestOffer: watch.product.offers[0]
+                    ? {
+                        shopType: watch.product.offers[0].shopType,
+                        price: watch.product.offers[0].price,
+                        effectivePrice: watch.product.offers[0].effectivePrice,
+                        externalUrl: watch.product.offers[0].externalUrl,
+                    }
+                    : null,
+            },
+        })),
+    );
 }
 
 export async function POST(request: Request) {
@@ -56,48 +48,26 @@ export async function POST(request: Request) {
     const productId = body.productId;
 
     if (!productId) {
-        return NextResponse.json(
-            { message: 'productId is required' },
-            { status: 400 },
-        );
+        return NextResponse.json({ message: 'productId is required' }, { status: 400 });
     }
 
+    const userId = await getSessionUserId();
+
     const existing = await prisma.watchlist.findUnique({
-        where: {
-            userId_productId: {
-                userId: DEMO_USER_ID,
-                productId: BigInt(productId),
-            },
-        },
-        include: {
-            watchCondition: true,
-        },
+        where: { userId_productId: { userId, productId: BigInt(productId) } },
+        include: { watchCondition: true },
     });
 
     if (existing) {
-        return NextResponse.json({
-            id: existing.id.toString(),
-            message: 'watchlist already exists',
-        });
+        return NextResponse.json({ id: existing.id.toString(), message: 'watchlist already exists' });
     }
 
     const watchlist = await prisma.watchlist.create({
         data: {
-            user: {
-                connect: {
-                    id: DEMO_USER_ID,
-                },
-            },
-            product: {
-                connect: {
-                    id: BigInt(productId),
-                },
-            },
+            user: { connect: { id: userId } },
+            product: { connect: { id: BigInt(productId) } },
         },
     });
 
-    return NextResponse.json({
-        id: watchlist.id.toString(),
-        message: 'watchlist added',
-    });
+    return NextResponse.json({ id: watchlist.id.toString(), message: 'watchlist added' });
 }

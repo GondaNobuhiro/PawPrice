@@ -1,89 +1,46 @@
 import Link from 'next/link';
-import UnwatchButton from '@/src/components/unwatch-button';
-import WatchConditionForm from '@/src/components/watch-condition-form';
+import type { Metadata } from 'next';
+import WatchlistCard from '@/src/components/watchlist-card';
+import { getWatchlists } from '@/src/app/lib/watchlists';
 
-type WatchlistItem = {
-    id: string;
-    createdAt: string;
-    product: {
-        id: string;
-        name: string;
-        category: string;
-        brand: string | null;
-        petType: string;
-        packageSize: string | null;
-        imageUrl: string | null;
-        lowestOffer: {
-            shopType: string;
-            price: number;
-            effectivePrice: number;
-            externalUrl: string;
-        } | null;
-    };
+export const metadata: Metadata = {
+    title: 'ウォッチリスト',
 };
-
-async function getWatchlists(): Promise<WatchlistItem[]> {
-    const res = await fetch('http://localhost:3000/api/watchlists', {
-        cache: 'no-store',
-    });
-
-    if (!res.ok) {
-        throw new Error('ウォッチリストの取得に失敗しました');
-    }
-
-    return res.json();
-}
 
 export default async function WatchlistsPage() {
     const watchlists = await getWatchlists();
 
     return (
         <main className="min-h-screen bg-[#f8f4ee] px-6 py-8">
-            <div className="mx-auto max-w-5xl">
-                <h1 className="mb-6 text-3xl font-bold">ウォッチリスト</h1>
-
-                <div className="grid gap-4">
-                    {watchlists.map((item) => (
-                        <div
-                            key={item.id}
-                            className="rounded-3xl border border-[#eadfce] bg-white p-4 shadow-sm"
-                        >
-                            <Link
-                                href={`/products/${item.product.id}`}
-                                className="mb-2 block text-xl font-semibold text-blue-600 underline"
-                            >
-                                {item.product.name}
-                            </Link>
-
-                            <div className="text-sm text-gray-600">
-                                カテゴリ: {item.product.category}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                                ブランド: {item.product.brand ?? '未設定'}
-                            </div>
-
-                            {item.product.lowestOffer && (
-                                <div className="mt-3 rounded-lg bg-blue-50 p-3">
-                                    <div>最安ショップ: {item.product.lowestOffer.shopType}</div>
-                                    <div>
-                                        実質価格: ¥
-                                        {item.product.lowestOffer.effectivePrice.toLocaleString()}
-                                    </div>
-                                    <a
-                                        href={item.product.lowestOffer.externalUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="mt-2 inline-block text-blue-600 underline"
-                                    >
-                                        商品ページを見る
-                                    </a>
-                                </div>
-                            )}
-                            <UnwatchButton productId={item.product.id} />
-                            <WatchConditionForm productId={item.product.id} />
-                        </div>
-                    ))}
+            <div className="mx-auto max-w-5xl space-y-6">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-bold text-[#4b3425]">ウォッチリスト</h1>
+                    {watchlists.length > 0 && (
+                        <span className="text-sm text-[#7a6657]">{watchlists.length}件</span>
+                    )}
                 </div>
+
+                {watchlists.length === 0 ? (
+                    <div className="rounded-3xl border border-[#eadfce] bg-white px-6 py-16 text-center shadow-sm">
+                        <div className="mb-4 text-5xl">🐾</div>
+                        <p className="font-medium text-[#4b3425]">ウォッチ中の商品はありません</p>
+                        <p className="mt-1 text-sm text-[#7a6657]">
+                            商品詳細ページから「ウォッチ追加」ボタンで登録できます
+                        </p>
+                        <Link
+                            href="/"
+                            className="mt-6 inline-flex rounded-2xl bg-[#d98f5c] px-6 py-3 text-sm font-medium text-white hover:bg-[#c97d49]"
+                        >
+                            商品を探す
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {watchlists.map((item) => (
+                            <WatchlistCard key={item.id} item={item} />
+                        ))}
+                    </div>
+                )}
             </div>
         </main>
     );

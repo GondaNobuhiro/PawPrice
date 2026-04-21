@@ -1,42 +1,32 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/src/app/lib/prisma';
-
-const DEMO_USER_ID = BigInt(1);
+import { getSessionUserId } from '@/src/app/lib/session';
 
 export async function GET() {
+    const userId = await getSessionUserId();
     const notifications = await prisma.notification.findMany({
-        where: {
-            userId: DEMO_USER_ID,
-        },
-        include: {
-            product: true,
-            productOffer: true,
-        },
-        orderBy: {
-            createdAt: 'desc',
-        },
+        where: { userId },
+        include: { product: true, productOffer: true },
+        orderBy: { createdAt: 'desc' },
     });
 
     return NextResponse.json(
-        notifications.map((notification) => ({
-            id: notification.id.toString(),
-            notificationType: notification.notificationType,
-            subject: notification.subject,
-            body: notification.body,
-            status: notification.status,
-            isRead: notification.isRead,
-            sentAt: notification.sentAt,
-            createdAt: notification.createdAt,
-            product: {
-                id: notification.product.id.toString(),
-                name: notification.product.name,
-            },
-            productOffer: notification.productOffer
+        notifications.map((n) => ({
+            id: n.id.toString(),
+            notificationType: n.notificationType,
+            subject: n.subject,
+            body: n.body,
+            status: n.status,
+            isRead: n.isRead,
+            sentAt: n.sentAt,
+            createdAt: n.createdAt,
+            product: { id: n.product.id.toString(), name: n.product.name },
+            productOffer: n.productOffer
                 ? {
-                    id: notification.productOffer.id.toString(),
-                    shopType: notification.productOffer.shopType,
-                    effectivePrice: notification.productOffer.effectivePrice,
-                    externalUrl: notification.productOffer.externalUrl,
+                    id: n.productOffer.id.toString(),
+                    shopType: n.productOffer.shopType,
+                    effectivePrice: n.productOffer.effectivePrice,
+                    externalUrl: n.productOffer.externalUrl,
                 }
                 : null,
         })),

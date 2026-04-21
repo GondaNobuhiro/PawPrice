@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/src/app/lib/prisma';
-
-
-const DEMO_USER_ID = BigInt(1);
+import { getSessionUserId } from '@/src/app/lib/session';
 
 type PushSubscriptionBody = {
     endpoint: string;
@@ -19,27 +17,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'invalid subscription' }, { status: 400 });
     }
 
+    const userId = await getSessionUserId();
+
     const subscription = await prisma.pushSubscription.upsert({
-        where: {
-            endpoint: body.endpoint,
-        },
-        update: {
-            p256dhKey: body.keys.p256dh,
-            authKey: body.keys.auth,
-            isActive: true,
-            userId: DEMO_USER_ID,
-        },
-        create: {
-            userId: DEMO_USER_ID,
-            endpoint: body.endpoint,
-            p256dhKey: body.keys.p256dh,
-            authKey: body.keys.auth,
-            isActive: true,
-        },
+        where: { endpoint: body.endpoint },
+        update: { p256dhKey: body.keys.p256dh, authKey: body.keys.auth, isActive: true, userId },
+        create: { userId, endpoint: body.endpoint, p256dhKey: body.keys.p256dh, authKey: body.keys.auth, isActive: true },
     });
 
-    return NextResponse.json({
-        id: subscription.id.toString(),
-        message: 'push subscription saved',
-    });
+    return NextResponse.json({ id: subscription.id.toString(), message: 'push subscription saved' });
 }

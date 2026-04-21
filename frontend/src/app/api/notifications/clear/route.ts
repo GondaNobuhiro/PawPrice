@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/src/app/lib/prisma';
-
-const DEMO_USER_ID = BigInt(1);
+import { getSessionUserId } from '@/src/app/lib/session';
 
 export async function DELETE() {
+    const userId = await getSessionUserId();
     const result = await prisma.notification.deleteMany({
-        where: {
-            userId: DEMO_USER_ID,
-        },
+        where: { userId },
     });
 
     return NextResponse.json({

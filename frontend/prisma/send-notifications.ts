@@ -20,31 +20,51 @@ const prisma = new PrismaClient({
 
 async function main() {
     const notifications = await prisma.notification.findMany({
-        where: {
-            status: 'pending',
-        },
+        where: { status: 'pending' },
         include: {
             user: {
                 include: {
-                    pushSubscriptions: {
-                        where: { isActive: true },
-                    },
+                    pushSubscriptions: { where: { isActive: true } },
                 },
             },
             product: true,
         },
-        orderBy: {
-            createdAt: 'asc',
-        },
+        orderBy: { createdAt: 'asc' },
     });
 
-    for (const notification of notifications) {
-        const subscriptions = notification.user.pushSubscriptions;
+    if (notifications.length === 0) {
+        console.log('送信対象の通知はありません');
+        return;
+    }
+
+    // ユーザーごとにグループ化
+    const byUser = new Map<string, typeof notifications>();
+    for (const n of notifications) {
+        const key = n.userId.toString();
+        if (!byUser.has(key)) byUser.set(key, []);
+        byUser.get(key)!.push(n);
+    }
+
+    for (const [userId, userNotifications] of byUser) {
+        const subscriptions = userNotifications[0].user.pushSubscriptions;
 
         if (subscriptions.length === 0) {
-            console.log(`push subscription not found: notificationId=${notification.id.toString()}`);
+            console.log(`push subscription not found: userId=${userId}`);
             continue;
         }
+
+        const count = userNotifications.length;
+        const pushPayload = count === 1
+            ? {
+                title: userNotifications[0].subject,
+                body: userNotifications[0].body,
+                url: `${appUrl}/products/${userNotifications[0].productId.toString()}`,
+            }
+            : {
+                title: `${count}件の値下がりがあります`,
+                body: userNotifications.map((n) => n.product.name).join('、').slice(0, 100),
+                url: `${appUrl}/notifications`,
+            };
 
         let sent = false;
 
@@ -53,21 +73,13 @@ async function main() {
                 await webpush.sendNotification(
                     {
                         endpoint: subscription.endpoint,
-                        keys: {
-                            p256dh: subscription.p256dhKey,
-                            auth: subscription.authKey,
-                        },
+                        keys: { p256dh: subscription.p256dhKey, auth: subscription.authKey },
                     },
-                    JSON.stringify({
-                        title: notification.subject,
-                        body: notification.body,
-                        url: `${appUrl}/products/${notification.productId.toString()}`,
-                    }),
+                    JSON.stringify(pushPayload),
                 );
-
                 sent = true;
             } catch (error: any) {
-                console.error('push send failed', error);
+                console.error(`push send failed: userId=${userId}`, error?.statusCode, error?.message);
 
                 if (error?.statusCode === 404 || error?.statusCode === 410) {
                     await prisma.pushSubscription.update({
@@ -79,13 +91,12 @@ async function main() {
         }
 
         if (sent) {
-            await prisma.notification.update({
-                where: { id: notification.id },
-                data: {
-                    status: 'sent',
-                    sentAt: new Date(),
-                },
+            const ids = userNotifications.map((n) => n.id);
+            await prisma.notification.updateMany({
+                where: { id: { in: ids } },
+                data: { status: 'sent', sentAt: new Date() },
             });
+            console.log(`送信完了: userId=${userId}, ${count}件 → push 1回`);
         }
     }
 }

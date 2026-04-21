@@ -1,27 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/src/app/lib/prisma';
-
-const DEMO_USER_ID = BigInt(1);
+import { getSessionUserId } from '@/src/app/lib/session';
 
 type Props = {
-    params: Promise<{
-        productId: string;
-    }>;
+    params: Promise<{ productId: string }>;
 };
 
 export async function GET(_: Request, { params }: Props) {
-    const { productId } = await params;
+    const [{ productId }, userId] = await Promise.all([params, getSessionUserId()]);
 
     const watch = await prisma.watchlist.findUnique({
-        where: {
-            userId_productId: {
-                userId: DEMO_USER_ID,
-                productId: BigInt(productId),
-            },
-        },
+        where: { userId_productId: { userId, productId: BigInt(productId) } },
     });
 
-    return NextResponse.json({
-        watched: !!watch,
-    });
+    return NextResponse.json({ watched: !!watch });
 }

@@ -1,55 +1,13 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import WatchButton from '@/src/components/watch-button';
 import PushSubscribeButton from '@/src/components/push-subscribe-button';
 import CategoryFilterChips from '@/src/components/category-filter-chips';
 import SortSelect from '@/src/components/sort-select';
 import PetTypeFilter from '@/src/components/pet-type-filter';
 import Pagination from '@/src/components/pagination';
-
-type ProductResponse = {
-    id: string;
-    name: string;
-    category: string;
-    subCategory?: string | null;
-    brand: string | null;
-    petType: string;
-    packageSize: string | null;
-    imageUrl: string | null;
-    offersCount: number;
-    lowestOffer: {
-        shopType: string;
-        sellerName: string | null;
-        price: number;
-        shippingFee: number | null;
-        pointAmount: number;
-        effectivePrice: number;
-        externalUrl: string;
-        imageUrl?: string | null;
-    } | null;
-    priceSummary: {
-        latestEffectivePrice: number | null;
-        historicalMinPrice: number | null;
-        latestDiffFromPrevious?: number | null;
-        isPriceDown: boolean;
-    };
-};
-
-type Category = {
-    id: string;
-    code: string;
-    name: string;
-    productCount: number;
-};
-
-type ProductsApiResponse = {
-    items: ProductResponse[];
-    pagination: {
-        page: number;
-        pageSize: number;
-        totalCount: number;
-        totalPages: number;
-    };
-};
+import { getCategories } from '@/src/app/lib/categories';
+import { getProducts } from '@/src/app/lib/products';
 
 function petTypeLabel(type: string) {
     if (type === 'dog') return '犬';
@@ -57,47 +15,14 @@ function petTypeLabel(type: string) {
     return type;
 }
 
-async function getProducts(
-    q?: string,
-    categoryId?: string,
-    sort?: string,
-    petType?: string,
-    page?: string,
-): Promise<ProductsApiResponse> {
-    const params = new URLSearchParams();
-
-    if (q) params.set('q', q);
-    if (categoryId) params.set('categoryId', categoryId);
-    if (sort) params.set('sort', sort);
-    if (petType) params.set('petType', petType);
-    if (page) params.set('page', page);
-
-    const query = params.toString();
-    const url = query
-        ? `http://localhost:3000/api/products?${query}`
-        : 'http://localhost:3000/api/products';
-
-    const res = await fetch(url, {
-        cache: 'no-store',
-    });
-
-    if (!res.ok) {
-        throw new Error('商品の取得に失敗しました');
-    }
-
-    return res.json();
-}
-
-async function getCategories(): Promise<Category[]> {
-    const res = await fetch('http://localhost:3000/api/categories', {
-        cache: 'no-store',
-    });
-
-    if (!res.ok) {
-        throw new Error('カテゴリの取得に失敗しました');
-    }
-
-    return res.json();
+function formatRelativeTime(isoString: string): string {
+    const diff = Date.now() - new Date(isoString).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 60) return `${minutes}分前`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}時間前`;
+    const days = Math.floor(hours / 24);
+    return `${days}日前`;
 }
 
 type Props = {
@@ -119,9 +44,18 @@ export default async function Home({ searchParams }: Props) {
     const page = params.page ?? '1';
 
     const [productsResponse, categories] = await Promise.all([
-        getProducts(q, categoryId, sort, petType, page),
+        getProducts({ q, categoryId, sort, petType, page }),
         getCategories(),
     ]);
+
+    const isFiltered = q !== '' || categoryId !== '' || petType !== '' || sort !== 'newest';
+    const fromParams = new URLSearchParams();
+    if (q) fromParams.set('q', q);
+    if (categoryId) fromParams.set('categoryId', categoryId);
+    if (sort && sort !== 'newest') fromParams.set('sort', sort);
+    if (petType) fromParams.set('petType', petType);
+    if (page && page !== '1') fromParams.set('page', page);
+    const fromUrl = fromParams.toString() ? `/?${fromParams.toString()}` : '/';
 
     const products = productsResponse.items;
     const pagination = productsResponse.pagination;
@@ -151,7 +85,7 @@ export default async function Home({ searchParams }: Props) {
 
                 <section className="rounded-3xl border border-[#eadfce] bg-white p-5 shadow-sm">
                     <form>
-                        <div className="grid gap-4 md:grid-cols-[1fr_220px_160px_160px_140px]">
+                        <div className="grid gap-4 md:grid-cols-[1fr_160px_160px_140px]">
                             <input
                                 type="text"
                                 name="q"
@@ -159,22 +93,6 @@ export default async function Home({ searchParams }: Props) {
                                 placeholder="商品名で検索"
                                 className="rounded-2xl border border-[#e6d9c8] bg-[#fffdf9] px-4 py-3 text-sm outline-none transition placeholder:text-[#b49d88] focus:border-[#d8b892]"
                             />
-
-                            <select
-                                name="categoryId"
-                                defaultValue={categoryId}
-                                className="rounded-2xl border border-[#e6d9c8] bg-[#fffdf9] px-4 py-3 text-sm outline-none transition focus:border-[#d8b892]"
-                            >
-                                <option value="">カテゴリ</option>
-                                {categories.map((cat) => (
-                                    <option key={cat.id} value={cat.id}>
-                                        {cat.name}
-                                        {typeof cat.productCount === 'number'
-                                            ? ` (${cat.productCount})`
-                                            : ''}
-                                    </option>
-                                ))}
-                            </select>
 
                             <select
                                 name="petType"
@@ -193,6 +111,7 @@ export default async function Home({ searchParams }: Props) {
                             >
                                 <option value="newest">新着順</option>
                                 <option value="price_asc">安い順</option>
+                                <option value="price_down">値下がり中</option>
                             </select>
 
                             <button
@@ -203,6 +122,16 @@ export default async function Home({ searchParams }: Props) {
                             </button>
                         </div>
                     </form>
+                    {isFiltered && (
+                        <div className="mt-3 flex justify-end">
+                            <Link
+                                href="/"
+                                className="text-sm text-[#9a6b3d] underline hover:text-[#c97d49]"
+                            >
+                                × フィルターをクリア
+                            </Link>
+                        </div>
+                    )}
                 </section>
 
                 <section className="rounded-3xl border border-[#eadfce] bg-white p-5 shadow-sm">
@@ -226,17 +155,9 @@ export default async function Home({ searchParams }: Props) {
                         categoryId={categoryId}
                         petType={petType}
                         selectedSort={sort}
+                        totalCount={pagination.totalCount}
                     />
                 </section>
-
-                <div className="flex items-center justify-between">
-                    <div className="text-sm text-[#7a6657]">
-            <span className="font-medium text-[#5c4331]">
-              {pagination.totalCount}
-            </span>{' '}
-                        件
-                    </div>
-                </div>
 
                 {products.length === 0 ? (
                     <section className="rounded-3xl border border-[#eadfce] bg-white p-10 text-center text-sm text-[#8e7a6c] shadow-sm">
@@ -253,9 +174,11 @@ export default async function Home({ searchParams }: Props) {
                                     <div className="grid gap-5 md:grid-cols-[170px_1fr]">
                                         <div className="flex items-start justify-center">
                                             {product.imageUrl ? (
-                                                <img
+                                                <Image
                                                     src={product.imageUrl}
                                                     alt={product.name}
+                                                    width={160}
+                                                    height={160}
                                                     className="h-40 w-40 rounded-2xl border border-[#efe4d7] bg-[#fffaf5] object-contain p-3"
                                                 />
                                             ) : (
@@ -283,7 +206,7 @@ export default async function Home({ searchParams }: Props) {
                                             </div>
 
                                             <Link
-                                                href={`/products/${product.id}`}
+                                                href={`/products/${product.id}?from=${encodeURIComponent(fromUrl)}`}
                                                 className="mb-3 block text-xl font-semibold leading-8 text-[#4b3425] transition hover:text-[#c97d49]"
                                             >
                                                 {product.name}
@@ -349,6 +272,7 @@ export default async function Home({ searchParams }: Props) {
                                                                 {product.lowestOffer.shippingFee === 0 && (
                                                                     <span className="text-green-700">送料無料</span>
                                                                 )}
+                                                                <span>更新: {formatRelativeTime(product.lowestOffer.lastFetchedAt)}</span>
                                                             </div>
                                                         </div>
                                                     </div>

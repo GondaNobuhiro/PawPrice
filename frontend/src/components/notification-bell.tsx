@@ -107,7 +107,6 @@ export default function NotificationBell() {
             router.refresh();
         } catch (error) {
             console.error(error);
-            alert('通知を開けませんでした');
         } finally {
             setLoading(false);
         }

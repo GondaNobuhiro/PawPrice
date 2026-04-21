@@ -1,50 +1,10 @@
+import Link from 'next/link';
+import Image from 'next/image';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import WatchButton from '@/src/components/watch-button';
-import PriceHistoryChart from '@/src/components/price-history-chart';
-
-type PriceHistory = {
-    id: string;
-    price: number;
-    effectivePrice: number;
-    fetchedAt: string;
-};
-
-type Offer = {
-    id: string;
-    shopType: string;
-    title: string;
-    price: number;
-    shippingFee: number | null;
-    pointAmount: number;
-    effectivePrice: number;
-    externalUrl: string;
-    sellerName: string | null;
-    availabilityStatus: string | null;
-    priceHistories: PriceHistory[];
-};
-
-type ProductDetail = {
-    id: string;
-    name: string;
-    category: string;
-    brand: string | null;
-    petType: string;
-    packageSize: string | null;
-    imageUrl: string | null;
-    description: string | null;
-    offers: Offer[];
-};
-
-async function getProduct(id: string): Promise<ProductDetail> {
-    const res = await fetch(`http://localhost:3000/api/products/${id}`, {
-        cache: 'no-store',
-    });
-
-    if (!res.ok) {
-        throw new Error('商品詳細の取得に失敗しました');
-    }
-
-    return res.json();
-}
+import OfferCard from '@/src/components/offer-card';
+import { getProduct } from '@/src/app/lib/products';
 
 function petTypeLabel(petType: string): string {
     switch (petType) {
@@ -68,26 +28,53 @@ function formatShipping(fee: number | null): string {
 }
 
 type Props = {
-    params: Promise<{
-        id: string;
-    }>;
+    params: Promise<{ id: string }>;
+    searchParams: Promise<{ from?: string }>;
 };
 
-export default async function ProductDetailPage({ params }: Props) {
+export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {
     const { id } = await params;
     const product = await getProduct(id);
+    if (!product) return { title: '商品が見つかりません' };
+    return {
+        title: product.name,
+        description: `${product.name}の価格比較。${product.offers.length}ショップの最安値・ポイント還元・送料を確認できます。`,
+        openGraph: {
+            title: product.name,
+            description: `最安値 ¥${product.offers[0]?.effectivePrice.toLocaleString() ?? '-'}`,
+            images: product.imageUrl ? [{ url: product.imageUrl }] : [],
+        },
+    };
+}
+
+export default async function ProductDetailPage({ params, searchParams }: Props) {
+    const [{ id }, { from }] = await Promise.all([params, searchParams]);
+    const product = await getProduct(id);
+    if (!product) notFound();
     const lowestOffer = product.offers[0] ?? null;
+    const backHref = from ? decodeURIComponent(from) : '/';
 
     return (
         <main className="min-h-screen bg-[#f8f4ee] px-6 py-8">
             <div className="mx-auto max-w-5xl space-y-6">
+                <div>
+                    <Link
+                        href={backHref}
+                        className="inline-flex items-center gap-1 rounded-xl border border-[#eadfce] bg-white px-4 py-2 text-sm text-[#7a6657] transition hover:bg-[#f5e8d8]"
+                    >
+                        ← 一覧に戻る
+                    </Link>
+                </div>
+
                 <section className="rounded-3xl border border-[#eadfce] bg-white p-6 shadow-sm">
                     <div className="grid gap-6 md:grid-cols-[180px_1fr]">
                         <div className="flex items-start justify-center">
                             {product.imageUrl ? (
-                                <img
+                                <Image
                                     src={product.imageUrl}
                                     alt={product.name}
+                                    width={176}
+                                    height={176}
                                     className="h-44 w-44 rounded-xl border object-contain bg-white p-2"
                                 />
                             ) : (
@@ -169,10 +156,6 @@ export default async function ProductDetailPage({ params }: Props) {
                 )}
 
                 <section className="rounded-3xl border border-[#eadfce] bg-white p-6 shadow-sm">
-                    <PriceHistoryChart offers={product.offers} />
-                </section>
-
-                <section className="rounded-3xl border border-[#eadfce] bg-white p-6 shadow-sm">
                     <div className="mb-4 flex items-center justify-between gap-3">
                         <h2 className="text-lg font-semibold text-gray-900">ショップ比較</h2>
                         <span className="text-sm text-gray-500">{product.offers.length}件</span>
@@ -184,62 +167,9 @@ export default async function ProductDetailPage({ params }: Props) {
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {product.offers.map((offer, index) => {
-                                const isLowest = index === 0;
-
-                                return (
-                                    <div
-                                        key={offer.id}
-                                        className={`rounded-2xl border p-4 ${
-                                            isLowest ? 'border-blue-200 bg-blue-50' : 'bg-white'
-                                        }`}
-                                    >
-                                        <div className="flex flex-wrap items-start justify-between gap-3">
-                                            <div>
-                                                <div className="mb-1 flex flex-wrap items-center gap-2">
-                                                    <div className="font-semibold text-gray-900">
-                                                        {offer.shopType}
-                                                    </div>
-                                                    {isLowest && (
-                                                        <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white">
-                              最安
-                            </span>
-                                                    )}
-                                                </div>
-
-                                                <div className="text-sm text-gray-600">
-                                                    {offer.sellerName ?? '-'}
-                                                </div>
-                                            </div>
-
-                                            <div className="text-right">
-                                                <div className="text-xs text-gray-400">実質価格</div>
-                                                <div className="text-2xl font-bold text-gray-900">
-                                                    {formatCurrency(offer.effectivePrice)}
-                                                </div>
-                                                <div className="mt-1 flex flex-wrap justify-end gap-2 text-xs text-gray-500">
-                                                    <span>価格 {formatCurrency(offer.price)}</span>
-                                                    {offer.pointAmount > 0 && (
-                                                        <span className="text-orange-600">− ポイント還元 {formatCurrency(offer.pointAmount)}</span>
-                                                    )}
-                                                    <span>{formatShipping(offer.shippingFee)}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-4 flex flex-wrap gap-3">
-                                            <a
-                                                href={offer.externalUrl}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm text-gray-700"
-                                            >
-                                                商品ページを見る
-                                            </a>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            {product.offers.map((offer, index) => (
+                                <OfferCard key={offer.id} offer={offer} isLowest={index === 0} />
+                            ))}
                         </div>
                     )}
                 </section>

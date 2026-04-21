@@ -1,17 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/src/app/lib/prisma';
-
-const DEMO_USER_ID = BigInt(1);
+import { getSessionUserId } from '@/src/app/lib/session';
 
 export async function GET() {
+    const userId = await getSessionUserId();
     const count = await prisma.notification.count({
-        where: {
-            userId: DEMO_USER_ID,
-            isRead: false,
-        },
+        where: { userId, isRead: false },
     });
 
-    return NextResponse.json({
-        unreadCount: count,
-    });
+    return NextResponse.json({ unreadCount: count });
 }
