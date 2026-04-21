@@ -53,20 +53,14 @@ export async function POST(request: Request) {
 
     const userId = await getSessionUserId();
 
-    const existing = await prisma.watchlist.findUnique({
+    const watchlist = await prisma.watchlist.upsert({
         where: { userId_productId: { userId, productId: BigInt(productId) } },
-        include: { watchCondition: true },
-    });
-
-    if (existing) {
-        return NextResponse.json({ id: existing.id.toString(), message: 'watchlist already exists' });
-    }
-
-    const watchlist = await prisma.watchlist.create({
-        data: {
+        create: {
             user: { connect: { id: userId } },
             product: { connect: { id: BigInt(productId) } },
         },
+        update: {},
+        select: { id: true },
     });
 
     return NextResponse.json({ id: watchlist.id.toString(), message: 'watchlist added' });

@@ -3,6 +3,9 @@ import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { prisma } from './prisma';
 
+// Lambdaウォーム中は sessionId→userId をメモリキャッシュ（DB不要）
+const sessionCache = new Map<string, bigint>();
+
 async function resolveSessionUserId(): Promise<bigint> {
     const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
 
@@ -14,17 +17,20 @@ async function resolveSessionUserId(): Promise<bigint> {
         redirect(`/api/session/init?next=${encodeURIComponent(path)}`);
     }
 
+    const cached = sessionCache.get(sessionId);
+    if (cached !== undefined) return cached;
+
     const existing = await prisma.user.findUnique({
         where: { sessionId },
         select: { id: true },
     });
-    if (existing) return existing.id;
 
-    const created = await prisma.user.create({
-        data: { sessionId },
-        select: { id: true },
-    });
-    return created.id;
+    const userId = existing
+        ? existing.id
+        : (await prisma.user.create({ data: { sessionId }, select: { id: true } })).id;
+
+    sessionCache.set(sessionId, userId);
+    return userId;
 }
 
 // 同一リクエスト内で複数回呼ばれてもDBアクセスは1回
