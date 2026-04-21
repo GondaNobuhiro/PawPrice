@@ -11,7 +11,7 @@ export async function GET() {
     });
 
     return NextResponse.json(
-        notifications.map((n) => ({
+        notifications.map((n: (typeof notifications)[number]) => ({
             id: n.id.toString(),
             notificationType: n.notificationType,
             subject: n.subject,
