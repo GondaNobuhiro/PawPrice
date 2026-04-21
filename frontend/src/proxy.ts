@@ -8,6 +8,7 @@ export function proxy(request: NextRequest) {
     // リクエストヘッダーに転送 → Server Component が同一リクエスト内で読める
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-session-id', sessionId);
+    requestHeaders.set('x-pathname', request.nextUrl.pathname);
 
     const response = NextResponse.next({ request: { headers: requestHeaders } });
 

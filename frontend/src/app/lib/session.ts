@@ -1,4 +1,5 @@
 import { cookies, headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { prisma } from './prisma';
 
 export async function getSessionUserId(): Promise<bigint> {
@@ -9,7 +10,8 @@ export async function getSessionUserId(): Promise<bigint> {
         cookieStore.get('session_id')?.value ?? headerStore.get('x-session-id');
 
     if (!sessionId) {
-        throw new Error('session_id not found');
+        const path = headerStore.get('x-pathname') ?? '/';
+        redirect(`/api/session/init?next=${encodeURIComponent(path)}`);
     }
 
     const user = await prisma.user.upsert({
