@@ -82,6 +82,8 @@ model Product {
   watchlists    Watchlist[]
   notifications Notification[]
 
+  @@index([categoryId, isActive])
+  @@index([isActive, createdAt])
   @@map("products")
 }
 
@@ -110,6 +112,7 @@ model ProductOffer {
   notifications  Notification[]
 
   @@unique([shopType, externalItemId])
+  @@index([productId, isActive, effectivePrice])
   @@map("product_offers")
 }
 
@@ -125,6 +128,7 @@ model PriceHistory {
 
   productOffer ProductOffer @relation(fields: [productOfferId], references: [id])
 
+  @@index([productOfferId, fetchedAt])
   @@map("price_histories")
 }
 
@@ -174,6 +178,7 @@ model Notification {
   product      Product       @relation(fields: [productId], references: [id])
   productOffer ProductOffer? @relation(fields: [productOfferId], references: [id])
 
+  @@index([userId, isRead])
   @@map("notifications")
 }
 
@@ -205,5 +210,6 @@ model Genre {
   updatedAt             DateTime @updatedAt @map("updated_at")
 
   @@unique([platform, externalGenreId])
+  @@index([platform, level, isPetGenre, isActive])
   @@map("genres")
 }
