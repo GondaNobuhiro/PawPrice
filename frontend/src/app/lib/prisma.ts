@@ -18,8 +18,10 @@ const pool =
     new Pool({
         connectionString,
         max: 3,
-        idleTimeoutMillis: 10_000,
-        connectionTimeoutMillis: 5_000,
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 8_000,
+        // PgBouncer（Neon pooler）はPrepared Statementを無効化する必要がある
+        statement_timeout: 30_000,
     });
 
 const prisma =
