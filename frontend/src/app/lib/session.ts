@@ -1,11 +1,11 @@
+import { cache } from 'react';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { prisma } from './prisma';
 
-export async function getSessionUserId(): Promise<bigint> {
+async function resolveSessionUserId(): Promise<bigint> {
     const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
 
-    // Cookie（2回目以降）またはミドルウェアが転送したヘッダー（初回）
     const sessionId =
         cookieStore.get('session_id')?.value ?? headerStore.get('x-session-id');
 
@@ -14,12 +14,18 @@ export async function getSessionUserId(): Promise<bigint> {
         redirect(`/api/session/init?next=${encodeURIComponent(path)}`);
     }
 
-    const user = await prisma.user.upsert({
+    const existing = await prisma.user.findUnique({
         where: { sessionId },
-        create: { sessionId },
-        update: {},
         select: { id: true },
     });
+    if (existing) return existing.id;
 
-    return user.id;
+    const created = await prisma.user.create({
+        data: { sessionId },
+        select: { id: true },
+    });
+    return created.id;
 }
+
+// 同一リクエスト内で複数回呼ばれてもDBアクセスは1回
+export const getSessionUserId = cache(resolveSessionUserId);

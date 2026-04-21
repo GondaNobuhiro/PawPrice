@@ -17,6 +17,9 @@ const pool =
     globalForPrisma.pool ??
     new Pool({
         connectionString,
+        max: 3,
+        idleTimeoutMillis: 10_000,
+        connectionTimeoutMillis: 5_000,
     });
 
 const prisma =
@@ -25,9 +28,7 @@ const prisma =
         adapter: new PrismaPg(pool),
     });
 
-if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.pool = pool;
-    globalForPrisma.prisma = prisma;
-}
+globalForPrisma.pool = pool;
+globalForPrisma.prisma = prisma;
 
 export { prisma };
