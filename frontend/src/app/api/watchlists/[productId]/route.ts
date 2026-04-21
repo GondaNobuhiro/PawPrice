@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/src/app/lib/prisma';
 import { getSessionUserId } from '@/src/app/lib/session';
 
@@ -18,7 +19,7 @@ export async function DELETE(_: Request, { params }: Props) {
         return NextResponse.json({ message: 'watchlist not found' });
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         if (watchlist.watchCondition) {
             await tx.watchCondition.delete({ where: { watchlistId: watchlist.id } });
         }

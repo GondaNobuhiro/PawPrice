@@ -19,7 +19,7 @@ export async function GET() {
     });
 
     return NextResponse.json(
-        watchlists.map((watch) => ({
+        watchlists.map((watch: (typeof watchlists)[number]) => ({
             id: watch.id.toString(),
             createdAt: watch.createdAt,
             product: {
