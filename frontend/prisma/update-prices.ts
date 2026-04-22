@@ -168,6 +168,7 @@ async function main() {
                 externalItemId: true,
                 price: true,
                 pointAmount: true,
+                _count: { select: { priceHistories: true } },
             },
         });
 
@@ -187,7 +188,10 @@ async function main() {
                 data: { price: newPrice, pointAmount: newPointAmount, effectivePrice: newEffectivePrice, shippingFee: newShippingFee, lastFetchedAt: now },
             });
 
-            if (newPrice !== offer.price || newPointAmount !== offer.pointAmount) {
+            const priceChanged = newPrice !== offer.price || newPointAmount !== offer.pointAmount;
+            const hasNoHistory = offer._count.priceHistories === 0;
+
+            if (priceChanged || hasNoHistory) {
                 await prisma.priceHistory.create({
                     data: {
                         productOffer: { connect: { id: offer.id } },
@@ -198,8 +202,13 @@ async function main() {
                         fetchedAt: now,
                     },
                 });
-                console.log(`[updated] ${offer.externalItemId} ${offer.price} → ${newPrice}`);
-                priceUpdated++;
+                if (priceChanged) {
+                    console.log(`[updated] ${offer.externalItemId} ${offer.price} → ${newPrice}`);
+                    priceUpdated++;
+                } else {
+                    console.log(`[baseline] ${offer.externalItemId} ¥${newPrice}`);
+                    priceUpdated++;
+                }
             } else {
                 priceUnchanged++;
             }
