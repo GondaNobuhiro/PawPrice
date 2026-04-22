@@ -52,8 +52,7 @@ async function fetchCategories(): Promise<Category[]> {
                     name: child.name,
                     productCount: countMap.get(child.id.toString()) ?? 0,
                 }))
-                .filter((c) => c.productCount > 0)
-                .sort((a, b) => b.productCount - a.productCount);
+                .filter((c) => c.productCount > 0);
             return { id: parent.id.toString(), code: parent.code, name: parent.name, productCount, children };
         })
         .filter((c) => c.productCount > 0);
