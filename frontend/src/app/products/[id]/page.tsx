@@ -32,17 +32,23 @@ type Props = {
     searchParams: Promise<{ from?: string }>;
 };
 
+const BASE_URL = 'https://paw-price.vercel.app';
+
 export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {
     const { id } = await params;
     const product = await getProduct(id);
     if (!product) return { title: '商品が見つかりません' };
+    const lowestPrice = product.offers[0]?.effectivePrice;
+    const description = `${product.name}の最安値・価格比較。${product.offers.length}ショップを横断比較。ポイント還元込みの実質価格を確認できます。`;
     return {
         title: product.name,
-        description: `${product.name}の価格比較。${product.offers.length}ショップの最安値・ポイント還元・送料を確認できます。`,
+        description,
+        alternates: { canonical: `${BASE_URL}/products/${id}` },
         openGraph: {
+            type: 'website',
             title: product.name,
-            description: `最安値 ¥${product.offers[0]?.effectivePrice.toLocaleString() ?? '-'}`,
-            images: product.imageUrl ? [{ url: product.imageUrl }] : [],
+            description: lowestPrice ? `最安値 ¥${lowestPrice.toLocaleString()} | ${description}` : description,
+            images: product.imageUrl ? [{ url: product.imageUrl, width: 400, height: 400, alt: product.name }] : [],
         },
     };
 }
@@ -54,8 +60,37 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
     const lowestOffer = product.offers[0] ?? null;
     const backHref = from ? decodeURIComponent(from) : '/';
 
+    const productJsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: product.name,
+        description: product.description ?? undefined,
+        image: product.imageUrl ?? undefined,
+        brand: product.brand ? { '@type': 'Brand', name: product.brand } : undefined,
+        offers: product.offers.map((offer) => ({
+            '@type': 'Offer',
+            price: offer.effectivePrice,
+            priceCurrency: 'JPY',
+            availability: 'https://schema.org/InStock',
+            url: offer.externalUrl,
+            seller: offer.sellerName ? { '@type': 'Organization', name: offer.sellerName } : undefined,
+        })),
+    };
+
+    const breadcrumbJsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'ホーム', item: BASE_URL },
+            { '@type': 'ListItem', position: 2, name: product.category, item: `${BASE_URL}/?categoryId=` },
+            { '@type': 'ListItem', position: 3, name: product.name, item: `${BASE_URL}/products/${id}` },
+        ],
+    };
+
     return (
         <main className="min-h-screen bg-[#f8f4ee] px-6 py-8">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
             <div className="mx-auto max-w-5xl space-y-6">
                 <div>
                     <Link

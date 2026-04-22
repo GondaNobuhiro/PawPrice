@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import type { Metadata } from 'next';
 import WatchButton from '@/src/components/watch-button';
 import PushSubscribeButton from '@/src/components/push-subscribe-button';
 import CategoryFilterChips from '@/src/components/category-filter-chips';
@@ -8,6 +9,28 @@ import PetTypeFilter from '@/src/components/pet-type-filter';
 import Pagination from '@/src/components/pagination';
 import { getCategories } from '@/src/app/lib/categories';
 import { getProducts } from '@/src/app/lib/products';
+
+const BASE_URL = 'https://paw-price.vercel.app';
+
+export const metadata: Metadata = {
+    alternates: { canonical: BASE_URL },
+};
+
+const websiteJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'PawPrice',
+    url: BASE_URL,
+    description: '犬・猫用品の最安値をショップ横断で比較。価格推移・ポイント還元込みの実質価格を確認できます。',
+    potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+            '@type': 'EntryPoint',
+            urlTemplate: `${BASE_URL}/?q={search_term_string}`,
+        },
+        'query-input': 'required name=search_term_string',
+    },
+};
 
 function petTypeLabel(type: string) {
     if (type === 'dog') return '犬';
@@ -62,6 +85,7 @@ export default async function Home({ searchParams }: Props) {
 
     return (
         <main className="min-h-screen bg-[#f8f4ee] px-6 py-8">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
             <div className="mx-auto max-w-6xl space-y-6">
                 <section className="rounded-3xl border border-[#eadfce] bg-[#fffaf3] p-6 shadow-sm">
                     <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">

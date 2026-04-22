@@ -2,13 +2,25 @@ import type { Metadata } from 'next';
 import './globals.css';
 import AppHeader from '@/src/components/app-header';
 
+const BASE_URL = 'https://paw-price.vercel.app';
+
+const organizationJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'PawPrice',
+    url: BASE_URL,
+    logo: `${BASE_URL}/icon.png`,
+    description: '犬・猫用品の最安値をショップ横断で比較。ポイント還元込みの実質価格と価格推移を確認できるペット用品価格比較サービス。',
+};
+
 export const metadata: Metadata = {
     title: {
         default: 'PawPrice — ペット用品の価格比較',
         template: '%s | PawPrice',
     },
     description: '犬・猫用品の最安値をショップ横断で比較。価格推移・ポイント還元込みの実質価格を確認できます。',
-    metadataBase: new URL('https://paw-price.vercel.app'),
+    metadataBase: new URL(BASE_URL),
+    keywords: ['ペット用品', '価格比較', '最安値', '犬', '猫', 'ドッグフード', 'キャットフード', 'ポイント還元'],
     openGraph: {
         type: 'website',
         siteName: 'PawPrice',
@@ -29,6 +41,9 @@ export const metadata: Metadata = {
         apple: '/icon.png',
     },
     manifest: '/manifest.json',
+    other: {
+        'theme-color': '#d98f5c',
+    },
 };
 
 export default function RootLayout({
@@ -39,6 +54,7 @@ export default function RootLayout({
   return (
       <html lang="ja">
       <body className="bg-gray-50 text-gray-900">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
       <AppHeader />
       {children}
       </body>
