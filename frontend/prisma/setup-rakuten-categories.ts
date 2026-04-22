@@ -67,12 +67,17 @@ async function main() {
             // 名前で見つからない場合はコードで upsert
             cat = await prisma.category.upsert({
                 where: { code },
-                update: { name: g.name },
+                update: { name: g.name, parentCategoryId: null },
                 create: { code, name: g.name },
                 select: { id: true },
             });
         }
-        // 既存カテゴリが見つかった場合は code 更新不要（衝突を避ける）
+
+        // level2 カテゴリは必ず top-level（parentCategoryId = null）にする
+        await prisma.category.update({
+            where: { id: cat.id },
+            data: { parentCategoryId: null },
+        });
 
         level2CatByGenreId.set(g.externalGenreId, cat.id);
         console.log(`  [level2] ${g.name} → category id=${cat.id}`);

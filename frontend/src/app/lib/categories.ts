@@ -16,7 +16,7 @@ export type Category = {
 
 async function fetchCategories(): Promise<Category[]> {
     const parentCategories = await prisma.category.findMany({
-        where: { parentCategoryId: null },
+        where: { parentCategoryId: null, code: { startsWith: 'rakuten_genre_' } },
         select: {
             id: true,
             code: true,
