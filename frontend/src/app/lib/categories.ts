@@ -14,69 +14,58 @@ export type Category = {
     children: ChildCategory[];
 };
 
+// カテゴリ表示順（codeで管理）
+const CATEGORY_CODE_ORDER = [
+    'food', 'snack', 'toilet', 'dish', 'cage', 'carry',
+    'toy', 'deodorant', 'care', 'wear', 'bed', 'outdoor', 'medical', 'other',
+];
+
 async function fetchCategories(): Promise<Category[]> {
-    // Genre テーブルから level 1（大カテゴリ）と level 2（中カテゴリ）を取得
-    const genres = await prisma.genre.findMany({
-        where: {
-            platform: 'rakuten',
-            isPetGenre: true,
-            isActive: true,
-            level: { in: [2, 3] },
-            name: { not: 'その他' },
+    const parentCategories = await prisma.category.findMany({
+        where: { parentCategoryId: null },
+        select: {
+            id: true,
+            code: true,
+            name: true,
+            children: { select: { id: true, name: true } },
         },
-        orderBy: [{ level: 'asc' }, { externalGenreId: 'asc' }],
-        select: { name: true, level: true, externalGenreId: true, parentExternalGenreId: true },
     });
 
-    const level1Genres = genres.filter((g) => g.level === 2);
-    const level2Genres = genres.filter((g) => g.level === 3);
-    const allGenreNames = genres.map((g) => g.name);
+    const categoryIdsToCheck = parentCategories.flatMap((parent) => [
+        parent.id,
+        ...parent.children.map((child) => child.id),
+    ]);
 
-    // ジャンル名から Category レコードを取得（import スクリプトで name = genre.name で作成済み）
-    const categories = await prisma.category.findMany({
-        where: { name: { in: allGenreNames } },
-        select: { id: true, code: true, name: true },
-    });
-    const catByName = new Map(categories.map((c) => [c.name, c]));
-
-    // 商品数を集計
-    const catIds = categories.map((c) => c.id);
-    const productCounts = await prisma.product.groupBy({
+    const products = await prisma.product.groupBy({
         by: ['categoryId'],
-        where: { isActive: true, categoryId: { in: catIds } },
+        where: { isActive: true, categoryId: { in: categoryIdsToCheck } },
         _count: { _all: true },
     });
-    const countMap = new Map(productCounts.map((p) => [p.categoryId.toString(), p._count._all]));
 
-    // 親 externalGenreId → 子ジャンル一覧のマップ
-    const childrenByParent = new Map<string, typeof level2Genres>();
-    for (const g of level2Genres) {
-        if (!g.parentExternalGenreId) continue;
-        const arr = childrenByParent.get(g.parentExternalGenreId) ?? [];
-        arr.push(g);
-        childrenByParent.set(g.parentExternalGenreId, arr);
+    const countMap = new Map<string, number>();
+    for (const row of products) {
+        countMap.set(row.categoryId.toString(), row._count._all);
     }
 
-    return level1Genres.flatMap((parentGenre) => {
-        const cat = catByName.get(parentGenre.name);
-        if (!cat) return [];
-
-        const childGenres = childrenByParent.get(parentGenre.externalGenreId) ?? [];
-        const children: ChildCategory[] = childGenres.flatMap((cg) => {
-            const childCat = catByName.get(cg.name);
-            if (!childCat) return [];
-            const productCount = countMap.get(childCat.id.toString()) ?? 0;
-            if (productCount === 0) return [];
-            return [{ id: childCat.id.toString(), name: cg.name, productCount }];
+    return parentCategories
+        .map((parent) => {
+            const allIds = [parent.id, ...parent.children.map((c) => c.id)];
+            const productCount = allIds.reduce((sum, id) => sum + (countMap.get(id.toString()) ?? 0), 0);
+            const children = parent.children
+                .map((child) => ({
+                    id: child.id.toString(),
+                    name: child.name,
+                    productCount: countMap.get(child.id.toString()) ?? 0,
+                }))
+                .filter((c) => c.productCount > 0);
+            return { id: parent.id.toString(), code: parent.code, name: parent.name, productCount, children };
+        })
+        .filter((c) => c.productCount > 0)
+        .sort((a, b) => {
+            const ai = CATEGORY_CODE_ORDER.indexOf(a.code);
+            const bi = CATEGORY_CODE_ORDER.indexOf(b.code);
+            return (ai === -1 ? CATEGORY_CODE_ORDER.length : ai) - (bi === -1 ? CATEGORY_CODE_ORDER.length : bi);
         });
-
-        const childProductCount = children.reduce((sum, c) => sum + c.productCount, 0);
-        const ownProductCount = countMap.get(cat.id.toString()) ?? 0;
-        const productCount = ownProductCount + childProductCount;
-
-        if (productCount === 0) return [];
-        return [{ id: cat.id.toString(), code: cat.code, name: parentGenre.name, productCount, children }];
-    });
 }
 
 export async function getCategories(): Promise<Category[]> {
