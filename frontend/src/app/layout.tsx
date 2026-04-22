@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import AppHeader from '@/src/components/app-header';
+
+const GA_ID = 'G-09ZJYSBLQC';
 
 const BASE_URL = 'https://paw-price.vercel.app';
 
@@ -54,6 +57,13 @@ export default function RootLayout({
   return (
       <html lang="ja">
       <body className="bg-gray-50 text-gray-900">
+      <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+      <Script id="ga-init" strategy="afterInteractive">{`
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '${GA_ID}');
+      `}</Script>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
       <AppHeader />
       {children}
