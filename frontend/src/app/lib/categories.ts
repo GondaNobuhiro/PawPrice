@@ -21,15 +21,15 @@ async function fetchCategories(): Promise<Category[]> {
             platform: 'rakuten',
             isPetGenre: true,
             isActive: true,
-            level: { in: [1, 2] },
+            level: { in: [2, 3] },
             name: { not: 'その他' },
         },
         orderBy: [{ level: 'asc' }, { externalGenreId: 'asc' }],
         select: { name: true, level: true, externalGenreId: true, parentExternalGenreId: true },
     });
 
-    const level1Genres = genres.filter((g) => g.level === 1);
-    const level2Genres = genres.filter((g) => g.level === 2);
+    const level1Genres = genres.filter((g) => g.level === 2);
+    const level2Genres = genres.filter((g) => g.level === 3);
     const allGenreNames = genres.map((g) => g.name);
 
     // ジャンル名から Category レコードを取得（import スクリプトで name = genre.name で作成済み）
