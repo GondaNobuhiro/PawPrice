@@ -8,11 +8,11 @@ import type { WatchlistItem } from '@/src/app/lib/watchlists';
 
 type Props = {
     item: WatchlistItem;
+    onRemove: (id: string) => void;
 };
 
-export default function WatchlistCard({ item }: Props) {
+export default function WatchlistCard({ item, onRemove }: Props) {
     const [unwatching, setUnwatching] = useState(false);
-    const [removed, setRemoved] = useState(false);
     const [showCondition, setShowCondition] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -22,14 +22,12 @@ export default function WatchlistCard({ item }: Props) {
             setError(null);
             const res = await fetch(`/api/watchlists/${item.product.id}`, { method: 'DELETE' });
             if (!res.ok) throw new Error();
-            setRemoved(true);
+            onRemove(item.id);
         } catch {
             setError('ウォッチ解除に失敗しました');
             setUnwatching(false);
         }
     };
-
-    if (removed) return null;
 
     const { product } = item;
 
