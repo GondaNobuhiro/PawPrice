@@ -14,12 +14,6 @@ export type Category = {
     children: ChildCategory[];
 };
 
-// カテゴリ表示順（codeで管理）
-const CATEGORY_CODE_ORDER = [
-    'food', 'snack', 'toilet', 'dish', 'cage', 'carry',
-    'toy', 'deodorant', 'care', 'wear', 'bed', 'outdoor', 'medical', 'other',
-];
-
 async function fetchCategories(): Promise<Category[]> {
     const parentCategories = await prisma.category.findMany({
         where: { parentCategoryId: null },
@@ -29,6 +23,7 @@ async function fetchCategories(): Promise<Category[]> {
             name: true,
             children: { select: { id: true, name: true } },
         },
+        orderBy: { id: 'asc' },
     });
 
     const categoryIdsToCheck = parentCategories.flatMap((parent) => [
@@ -60,12 +55,7 @@ async function fetchCategories(): Promise<Category[]> {
                 .filter((c) => c.productCount > 0);
             return { id: parent.id.toString(), code: parent.code, name: parent.name, productCount, children };
         })
-        .filter((c) => c.productCount > 0)
-        .sort((a, b) => {
-            const ai = CATEGORY_CODE_ORDER.indexOf(a.code);
-            const bi = CATEGORY_CODE_ORDER.indexOf(b.code);
-            return (ai === -1 ? CATEGORY_CODE_ORDER.length : ai) - (bi === -1 ? CATEGORY_CODE_ORDER.length : bi);
-        });
+        .filter((c) => c.productCount > 0);
 }
 
 export async function getCategories(): Promise<Category[]> {

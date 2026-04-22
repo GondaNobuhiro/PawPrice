@@ -69,9 +69,12 @@ async function fetchProducts(params: {
         });
 
         if (selectedCategory) {
-            targetCategoryIds = selectedCategory.parentCategoryId === null
-                ? [selectedCategory.id, ...selectedCategory.children.map((c) => c.id)]
-                : [selectedCategory.id];
+            // 親カテゴリ: 自身 + 直接の子カテゴリ
+            // 子カテゴリ: 自身 + その子カテゴリ（孫まで含む）
+            targetCategoryIds = [
+                selectedCategory.id,
+                ...selectedCategory.children.map((c) => c.id),
+            ];
         }
     }
 
