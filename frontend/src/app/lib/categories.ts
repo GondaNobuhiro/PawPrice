@@ -96,7 +96,7 @@ const fetchCategories = unstable_cache(
             return (ai === -1 ? CATEGORY_ORDER.length : ai) - (bi === -1 ? CATEGORY_ORDER.length : bi);
         });
     },
-    ['categories'],
+    ['categories-v2'],
     { revalidate: 3600 }, // 1時間キャッシュ
 );
 
