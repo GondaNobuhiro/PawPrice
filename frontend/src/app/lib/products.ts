@@ -91,12 +91,19 @@ async function fetchProducts(params: {
         if (matchingIds.length > 0) {
             const ids = matchingIds.map((p) => p.id);
             const rows = await prisma.$queryRaw<{ count: bigint }[]>`
-                WITH ranked AS (
+                WITH cheapest AS (
+                    SELECT DISTINCT ON (product_id) id AS offer_id
+                    FROM product_offers
+                    WHERE is_active = true AND product_id = ANY(${ids}::bigint[])
+                    ORDER BY product_id, effective_price ASC
+                ),
+                ranked AS (
                     SELECT
                         ph.product_offer_id AS offer_id,
                         ph.effective_price,
                         ROW_NUMBER() OVER (PARTITION BY ph.product_offer_id ORDER BY ph.fetched_at DESC) AS rn
                     FROM price_histories ph
+                    JOIN cheapest c ON c.offer_id = ph.product_offer_id
                 ),
                 dropped_offers AS (
                     SELECT offer_id
@@ -144,12 +151,19 @@ async function fetchProducts(params: {
         if (matchingIds.length > 0) {
             const ids = matchingIds.map((p) => p.id);
             const rows = await prisma.$queryRaw<{ id: bigint }[]>`
-                WITH ranked AS (
+                WITH cheapest AS (
+                    SELECT DISTINCT ON (product_id) id AS offer_id
+                    FROM product_offers
+                    WHERE is_active = true AND product_id = ANY(${ids}::bigint[])
+                    ORDER BY product_id, effective_price ASC
+                ),
+                ranked AS (
                     SELECT
                         ph.product_offer_id AS offer_id,
                         ph.effective_price,
                         ROW_NUMBER() OVER (PARTITION BY ph.product_offer_id ORDER BY ph.fetched_at DESC) AS rn
                     FROM price_histories ph
+                    JOIN cheapest c ON c.offer_id = ph.product_offer_id
                 ),
                 dropped_offers AS (
                     SELECT offer_id
