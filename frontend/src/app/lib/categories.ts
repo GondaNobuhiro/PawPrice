@@ -1,18 +1,5 @@
 import { prisma } from './prisma';
 
-const CATEGORY_ORDER = [
-    '犬用品',
-    '猫用品',
-    'ペット用お手入れ用品',
-    'ペット用食器・給水器・給餌器',
-    'ペット用仏具',
-    '室内ペット用家電',
-    '動物用検査キット',
-    'ペット用応急手当',
-    '動物用医薬品',
-    '動物用医療機器',
-];
-
 export type ChildCategory = {
     id: string;
     name: string;
@@ -69,12 +56,7 @@ async function fetchCategories(): Promise<Category[]> {
                 .sort((a, b) => b.productCount - a.productCount);
             return { id: parent.id.toString(), code: parent.code, name: parent.name, productCount, children };
         })
-        .filter((c) => c.productCount > 0)
-        .sort((a, b) => {
-            const ai = CATEGORY_ORDER.indexOf(a.name);
-            const bi = CATEGORY_ORDER.indexOf(b.name);
-            return (ai === -1 ? CATEGORY_ORDER.length : ai) - (bi === -1 ? CATEGORY_ORDER.length : bi);
-        });
+        .filter((c) => c.productCount > 0);
 }
 
 export async function getCategories(): Promise<Category[]> {
