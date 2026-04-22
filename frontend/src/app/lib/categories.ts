@@ -1,4 +1,3 @@
-import { unstable_cache } from 'next/cache';
 import { prisma } from './prisma';
 
 const CATEGORY_ORDER = [
@@ -28,29 +27,14 @@ export type Category = {
     children: ChildCategory[];
 };
 
-const fetchCategories = unstable_cache(
-    async (): Promise<Category[]> => {
-    const level2Genres = await prisma.genre.findMany({
-        where: { platform: 'rakuten', level: 2, isPetGenre: true, isActive: true, name: { not: 'その他' } },
-        select: { name: true },
-    });
-    const level2Names = level2Genres.map((g) => g.name);
-
+async function fetchCategories(): Promise<Category[]> {
     const parentCategories = await prisma.category.findMany({
-        where: {
-            parentCategoryId: null,
-            name: { in: level2Names },
-        },
+        where: { parentCategoryId: null },
         select: {
             id: true,
             code: true,
             name: true,
-            children: {
-                select: {
-                    id: true,
-                    name: true,
-                },
-            },
+            children: { select: { id: true, name: true } },
         },
         orderBy: { id: 'asc' },
     });
@@ -62,10 +46,7 @@ const fetchCategories = unstable_cache(
 
     const products = await prisma.product.groupBy({
         by: ['categoryId'],
-        where: {
-            isActive: true,
-            categoryId: { in: categoryIdsToCheck },
-        },
+        where: { isActive: true, categoryId: { in: categoryIdsToCheck } },
         _count: { _all: true },
     });
 
@@ -76,8 +57,7 @@ const fetchCategories = unstable_cache(
 
     return parentCategories
         .map((parent) => {
-            const childIds = parent.children.map((child) => child.id);
-            const allIds = [parent.id, ...childIds];
+            const allIds = [parent.id, ...parent.children.map((c) => c.id)];
             const productCount = allIds.reduce((sum, id) => sum + (countMap.get(id.toString()) ?? 0), 0);
             const children = parent.children
                 .map((child) => ({
@@ -95,10 +75,7 @@ const fetchCategories = unstable_cache(
             const bi = CATEGORY_ORDER.indexOf(b.name);
             return (ai === -1 ? CATEGORY_ORDER.length : ai) - (bi === -1 ? CATEGORY_ORDER.length : bi);
         });
-    },
-    ['categories-v2'],
-    { revalidate: 3600 }, // 1時間キャッシュ
-);
+}
 
 export async function getCategories(): Promise<Category[]> {
     return fetchCategories();
