@@ -26,7 +26,9 @@ export const metadata: Metadata = {
             { url: '/favicon.ico' },
             { url: '/icon.png', type: 'image/png' },
         ],
+        apple: '/icon.png',
     },
+    manifest: '/manifest.json',
 };
 
 export default function RootLayout({

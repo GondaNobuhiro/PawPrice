@@ -1,0 +1,21 @@
+{
+  "name": "PawPrice",
+  "short_name": "PawPrice",
+  "description": "ペット用品の価格比較",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fffaf3",
+  "theme_color": "#d98f5c",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
