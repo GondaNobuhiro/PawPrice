@@ -70,9 +70,11 @@ async function main() {
 
         // 2. 過去最安値更新通知
         else if (condition.notifyOnLowest) {
+            // 商品全オファーの履歴を横断して過去最安値を取得
+            const allOfferIds = watch.product.offers.map((o) => o.id);
             const historicalLowest = await prisma.priceHistory.findFirst({
                 where: {
-                    productOfferId: lowestOffer.id,
+                    productOfferId: { in: allOfferIds },
                     fetchedAt: {
                         lt: lowestOffer.lastFetchedAt,
                     },
