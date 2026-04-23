@@ -217,6 +217,27 @@ async function main() {
         console.log(`[scan] genre="${genre.name}" found=${genreItemMap.size} matched=${offers.length}`);
     });
 
+    // 履歴0件のアクティブofferにベースラインを作成（discover時の失敗などで孤立したもの）
+    const noHistoryOffers = await prisma.productOffer.findMany({
+        where: { isActive: true, priceHistories: { none: {} } },
+        select: { id: true, price: true, shippingFee: true, pointAmount: true, effectivePrice: true },
+    });
+    for (const offer of noHistoryOffers) {
+        await prisma.priceHistory.create({
+            data: {
+                productOffer: { connect: { id: offer.id } },
+                price: offer.price,
+                shippingFee: offer.shippingFee,
+                pointAmount: offer.pointAmount,
+                effectivePrice: offer.effectivePrice,
+                fetchedAt: now,
+            },
+        });
+    }
+    if (noHistoryOffers.length > 0) {
+        console.log(`[backfill] 履歴0件のoffer ${noHistoryOffers.length}件にbaseline作成`);
+    }
+
     // 一定期間スキャンで見つからないofferを非アクティブ化
     const cutoff = new Date(now.getTime() - DEACTIVATE_AFTER_DAYS * 24 * 60 * 60 * 1000);
     const deactivated = await prisma.productOffer.updateMany({

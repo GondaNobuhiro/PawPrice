@@ -416,36 +416,38 @@ async function main() {
                 const effectivePrice = item.itemPrice - pointAmount;
                 const shippingFee = item.postageFlag === 1 ? 0 : null;
 
-                const offer = await prisma.productOffer.create({
-                    data: {
-                        product: { connect: { id: productId } },
-                        shopType: 'rakuten',
-                        externalItemId: item.itemCode,
-                        externalUrl: item.itemUrl,
-                        title: item.itemName,
-                        sellerName: item.shopName,
-                        price: item.itemPrice,
-                        shippingFee,
-                        pointAmount,
-                        effectivePrice,
-                        imageUrl,
-                        lastFetchedAt: now,
-                        isActive: true,
-                    },
-                    select: { id: true },
+                await prisma.$transaction(async (tx) => {
+                    const offer = await tx.productOffer.create({
+                        data: {
+                            product: { connect: { id: productId } },
+                            shopType: 'rakuten',
+                            externalItemId: item.itemCode,
+                            externalUrl: item.itemUrl,
+                            title: item.itemName,
+                            sellerName: item.shopName,
+                            price: item.itemPrice,
+                            shippingFee,
+                            pointAmount,
+                            effectivePrice,
+                            imageUrl,
+                            lastFetchedAt: now,
+                            isActive: true,
+                        },
+                        select: { id: true },
+                    });
+
+                    await tx.priceHistory.create({
+                        data: {
+                            productOffer: { connect: { id: offer.id } },
+                            price: item.itemPrice,
+                            shippingFee,
+                            pointAmount,
+                            effectivePrice,
+                            fetchedAt: now,
+                        },
+                    });
                 });
                 totalCreatedOffers++;
-
-                await prisma.priceHistory.create({
-                    data: {
-                        productOffer: { connect: { id: offer.id } },
-                        price: item.itemPrice,
-                        shippingFee,
-                        pointAmount,
-                        effectivePrice,
-                        fetchedAt: now,
-                    },
-                });
             }
 
             page++;
