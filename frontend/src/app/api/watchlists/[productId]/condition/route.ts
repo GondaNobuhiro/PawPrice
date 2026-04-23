@@ -29,8 +29,9 @@ export async function GET(_: Request, { params }: Props) {
     let historicalLowestPrice: number | null = null;
 
     if (lowestOffer) {
+        const allOfferIds = watchlist.product.offers.map((o) => o.id);
         const historicalLowest = await prisma.priceHistory.findFirst({
-            where: { productOfferId: lowestOffer.id, fetchedAt: { lt: lowestOffer.lastFetchedAt } },
+            where: { productOfferId: { in: allOfferIds }, fetchedAt: { lt: lowestOffer.lastFetchedAt } },
             orderBy: { effectivePrice: 'asc' },
         });
         historicalLowestPrice = historicalLowest

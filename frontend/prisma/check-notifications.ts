@@ -33,6 +33,8 @@ async function main() {
         },
     });
 
+    const now = new Date();
+
     for (const watch of watchlists) {
         if (!watch.user.notifyEnabled) {
             continue;
@@ -102,6 +104,19 @@ async function main() {
         }
 
         if (!shouldNotify) {
+            continue;
+        }
+
+        // 同じ商品・同じタイプの通知が直近24時間以内に作成済みならスキップ
+        const recentlySent = await prisma.notification.findFirst({
+            where: {
+                userId: watch.user.id,
+                productId: watch.product.id,
+                notificationType,
+                createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+            },
+        });
+        if (recentlySent) {
             continue;
         }
 
