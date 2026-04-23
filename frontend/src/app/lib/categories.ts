@@ -1,5 +1,20 @@
 import { prisma } from './prisma';
 
+// 表示するトップレベルカテゴリのコード（DB内の正確な code 値）
+const PARENT_CATEGORY_CODES = [
+    'rakuten_genre_犬用品',
+    'rakuten_genre_猫用品',
+    'rakuten_genre_ペット用お手入れ用品',
+    'rakuten_genre_ペット用食器_給水器_給餌器',
+    'rakuten_genre_ペット用仏具',
+    'rakuten_genre_室内ペット用家電',
+    'rakuten_genre_動物用検査キット',
+    'rakuten_genre_ペット用応急手当',
+    'rakuten_genre_動物用医薬品',
+    'rakuten_genre_動物用医療機器',
+];
+
+// 表示順（DB の name と一致させる）
 const PARENT_CATEGORY_ORDER = [
     '犬用品',
     '猫用品',
@@ -7,7 +22,7 @@ const PARENT_CATEGORY_ORDER = [
     'ペット用食器・給水器・給餌器',
     'ペット用仏具',
     '室内ペット用家電',
-    '動物用検査キット',
+    '動物用検査キット（非医療目的）',
     'ペット用応急手当',
     '動物用医薬品',
     '動物用医療機器',
@@ -29,7 +44,7 @@ export type Category = {
 
 async function fetchCategories(): Promise<Category[]> {
     const parentCategories = await prisma.category.findMany({
-        where: { parentCategoryId: null, code: { startsWith: 'rakuten_genre_' } },
+        where: { code: { in: PARENT_CATEGORY_CODES } },
         select: {
             id: true,
             code: true,
