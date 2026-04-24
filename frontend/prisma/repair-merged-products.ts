@@ -73,8 +73,13 @@ function isMismatch(productName: string, packageSize: string | null, offerTitle:
 }
 
 function inferPetType(text: string): string {
-    if (/犬|ドッグ|dog/i.test(text)) return 'dog';
-    if (/猫|キャット|cat/i.test(text)) return 'cat';
+    const DOG_RE = /犬|ドッグ|dog/i;
+    const CAT_RE = /猫|キャット|cat/i;
+    const hasDog = DOG_RE.test(text);
+    const hasCat = CAT_RE.test(text);
+    if (hasDog && hasCat) return 'both';
+    if (hasDog) return 'dog';
+    if (hasCat) return 'cat';
     return 'both';
 }
 

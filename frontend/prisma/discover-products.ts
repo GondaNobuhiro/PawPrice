@@ -89,9 +89,20 @@ function normalizeProductName(name: string | null | undefined): string {
         .replace(/\s+/g, ' ').trim();
 }
 
-function inferPetType(text: string): string {
-    if (/犬|ドッグ|dog/i.test(text)) return 'dog';
-    if (/猫|キャット|cat/i.test(text)) return 'cat';
+function inferPetType(itemText: string, genreText?: string): string {
+    const DOG_RE = /犬|ドッグ|dog/i;
+    const CAT_RE = /猫|キャット|cat/i;
+    const hasDog = DOG_RE.test(itemText);
+    const hasCat = CAT_RE.test(itemText);
+    if (hasDog && hasCat) return 'both';
+    if (hasDog) return 'dog';
+    if (hasCat) return 'cat';
+    // 商品名に判断材料がない場合のみジャンル名で判定
+    if (genreText) {
+        if (DOG_RE.test(genreText) && CAT_RE.test(genreText)) return 'both';
+        if (DOG_RE.test(genreText)) return 'dog';
+        if (CAT_RE.test(genreText)) return 'cat';
+    }
     return 'both';
 }
 
@@ -424,7 +435,7 @@ async function main() {
                 }
 
                 const imageUrl = item.mediumImageUrls?.[0] ?? null;
-                const petType = inferPetType([item.itemName, item.itemCaption ?? '', genre.name].join(' '));
+                const petType = inferPetType([item.itemName, item.itemCaption ?? ''].join(' '), genre.name);
 
                 const { id: productId, created } = await findOrCreateProduct({
                     categoryId: category.id,
