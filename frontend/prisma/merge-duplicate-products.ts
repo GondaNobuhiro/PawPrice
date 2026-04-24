@@ -17,11 +17,12 @@ const dryRun = process.argv.includes('--dry-run');
 
 async function main() {
     // 重複グループを取得（normalizedName + petType が同じ、どちらも isActive=true）
+    // package_size も GROUP BY に含め、容量・個数違いを別商品として扱う
     const groups = await prisma.$queryRaw<{ normalized_name: string; pet_type: string; ids: string }[]>`
         SELECT normalized_name, pet_type, STRING_AGG(id::text, ',' ORDER BY id ASC) AS ids
         FROM products
         WHERE is_active = true AND normalized_name IS NOT NULL AND normalized_name != ''
-        GROUP BY normalized_name, pet_type
+        GROUP BY normalized_name, pet_type, COALESCE(package_size, '')
         HAVING COUNT(*) > 1
     `;
 

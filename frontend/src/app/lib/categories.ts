@@ -1,31 +1,37 @@
 import { prisma } from './prisma';
 
-// 表示するトップレベルカテゴリのコード（DB内の正確な code 値）
+// 表示するトップレベルカテゴリのコード（DB内の code 値）
 const PARENT_CATEGORY_CODES = [
-    'rakuten_genre_犬用品',
-    'rakuten_genre_猫用品',
-    'rakuten_genre_ペット用お手入れ用品',
-    'rakuten_genre_ペット用食器_給水器_給餌器',
-    'rakuten_genre_ペット用仏具',
-    'rakuten_genre_室内ペット用家電',
-    'rakuten_genre_動物用検査キット',
-    'rakuten_genre_ペット用応急手当',
-    'rakuten_genre_動物用医薬品',
-    'rakuten_genre_動物用医療機器',
+    'food',
+    'snack',
+    'toilet',
+    'care',
+    'toy',
+    'outdoor',
+    'wear',
+    'bed',
+    'cage',
+    'carry',
+    'dish',
+    'medical',
+    'deodorant',
 ];
 
-// 表示順（DB の name と一致させる）
+// 表示順
 const PARENT_CATEGORY_ORDER = [
-    '犬用品',
-    '猫用品',
-    'ペット用お手入れ用品',
-    'ペット用食器・給水器・給餌器',
-    'ペット用仏具',
-    '室内ペット用家電',
-    '動物用検査キット（非医療目的）',
-    'ペット用応急手当',
-    '動物用医薬品',
-    '動物用医療機器',
+    'food',
+    'snack',
+    'toilet',
+    'care',
+    'toy',
+    'outdoor',
+    'wear',
+    'bed',
+    'cage',
+    'carry',
+    'dish',
+    'medical',
+    'deodorant',
 ];
 
 export type ChildCategory = {
@@ -85,8 +91,8 @@ async function fetchCategories(): Promise<Category[]> {
         })
         .filter((c) => c.productCount > 0)
         .sort((a, b) => {
-            const ai = PARENT_CATEGORY_ORDER.indexOf(a.name);
-            const bi = PARENT_CATEGORY_ORDER.indexOf(b.name);
+            const ai = PARENT_CATEGORY_ORDER.indexOf(a.code);
+            const bi = PARENT_CATEGORY_ORDER.indexOf(b.code);
             return (ai === -1 ? PARENT_CATEGORY_ORDER.length : ai) - (bi === -1 ? PARENT_CATEGORY_ORDER.length : bi);
         });
 }

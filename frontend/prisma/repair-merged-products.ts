@@ -16,10 +16,14 @@ const dryRun = process.argv.includes('--dry-run');
 
 function normalizeProductName(name: string | null | undefined): string {
     if (!name) return '';
+    const SIZE_RE = /\d+(?:\.\d+)?(?:kg|ml|g|l|m|枚|個|袋|本|pcs)|[sml]サイズ|\b(?:xs|xl|xxl)\b/;
+    const keepIfSize = (content: string) => SIZE_RE.test(content) ? ` ${content} ` : ' ';
     return name
         .normalize('NFKC').toLowerCase()
-        .replace(/【[^】]*】/g, ' ').replace(/\[[^\]]*]/g, ' ')
-        .replace(/（[^）]*）/g, ' ').replace(/\([^)]*\)/g, ' ')
+        .replace(/【([^】]*)】/g, (_, c) => keepIfSize(c))
+        .replace(/\[([^\]]*)\]/g, (_, c) => keepIfSize(c))
+        .replace(/（([^）]*)）/g, (_, c) => keepIfSize(c))
+        .replace(/\(([^)]*)\)/g, (_, c) => keepIfSize(c))
         .replace(/送料無料|送料込み|正規品|公式|最安値|限定|お買い得/g, ' ')
         .replace(/ポイント\d+倍|ポイントアップ|セール/gi, ' ')
         .replace(/税込|あす楽|翌日配送/g, ' ')
@@ -27,6 +31,18 @@ function normalizeProductName(name: string | null | undefined): string {
         .replace(/[,:：;；\-‐–—]/g, ' ')
         .replace(/[!"#$%&'*=~^`{}<>?＋+]/g, ' ')
         .replace(/\s+/g, ' ').trim();
+}
+
+// ブラケット内のセット数（N個セット、N本セット 等）を抽出
+function extractBracketSetCount(name: string): string | null {
+    const n = name.normalize('NFKC').toLowerCase();
+    const SET_RE = /(\d+(?:個|点|本|袋|枚|箱|缶)(?:セット|入り?))/;
+    for (const m of n.matchAll(/【([^】]*)】|\[([^\]]*)\]|\(([^)]*)\)/g)) {
+        const content = m[1] || m[2] || m[3] || '';
+        const hit = content.match(SET_RE);
+        if (hit) return hit[0];
+    }
+    return null;
 }
 
 function isMismatch(productName: string, packageSize: string | null, offerTitle: string): boolean {
@@ -43,6 +59,16 @@ function isMismatch(productName: string, packageSize: string | null, offerTitle:
         if (!oNorm.includes(sizeNorm)) return true;
     }
 
+    // packageSizeがnullでも、商品名とofferタイトル双方からサイズを抽出して比較
+    const productExtractedSize = extractPackageSize(productName);
+    const offerExtractedSize = extractPackageSize(offerTitle);
+    if (productExtractedSize && offerExtractedSize && productExtractedSize !== offerExtractedSize) return true;
+
+    // ブラケット内セット数が異なる → 誤マージ（例：【3個セット】 vs 【2個セット】 or 単品）
+    const productSetCount = extractBracketSetCount(productName);
+    const offerSetCount = extractBracketSetCount(offerTitle);
+    if (productSetCount !== offerSetCount) return true;
+
     return false;
 }
 
@@ -54,8 +80,21 @@ function inferPetType(text: string): string {
 
 function extractPackageSize(name: string): string | null {
     const n = name.normalize('NFKC').toLowerCase();
-    const patterns = [/\b\d+(?:\.\d+)?kg\b/, /\b\d+(?:\.\d+)?g\b/, /\b\d+(?:\.\d+)?l\b/,
-        /\b\d+(?:\.\d+)?ml\b/, /\b\d+枚\b/, /\b\d+個\b/, /\b\d+袋\b/, /\b\d+本\b/];
+    const patterns = [
+        /\d+(?:\.\d+)?kg/,
+        /\d+(?:\.\d+)?ml/,
+        /\d+(?:\.\d+)?mg/,
+        /\d+(?:\.\d+)?g(?![a-z])/,
+        /\d+(?:\.\d+)?l(?![a-z])/,
+        /\d+(?:\.\d+)?m(?![a-z])/,
+        /\d+枚/,
+        /\d+個/,
+        /\d+袋/,
+        /\d+本/,
+        /\d+pcs/,
+        /[sml]サイズ/,
+        /\bxs\b|\bxl\b|\bxxl\b/,
+    ];
     for (const p of patterns) {
         const m = n.match(p);
         if (m) return m[0];
@@ -68,12 +107,19 @@ async function findOrCreateProductForOffer(params: {
     title: string;
     petType: string;
     imageUrl: string | null;
+    excludeProductId: bigint;  // 現在修正中の商品は候補から除外
 }): Promise<bigint> {
     const normalizedName = normalizeProductName(params.title);
     const packageSize = extractPackageSize(params.title);
 
     const nameMatch = await prisma.product.findFirst({
-        where: { categoryId: params.categoryId, petType: params.petType, normalizedName },
+        where: {
+            categoryId: params.categoryId,
+            petType: params.petType,
+            normalizedName,
+            packageSize: packageSize ?? null,
+            NOT: { id: params.excludeProductId },
+        },
         select: { id: true },
     });
     if (nameMatch) return nameMatch.id;
@@ -97,6 +143,24 @@ async function findOrCreateProductForOffer(params: {
 
 async function main() {
     console.log(`dryRun=${dryRun}`);
+
+    // offer移動より先にnormalizedNameを新形式に更新しておく
+    // （これにより findOrCreateProductForOffer が既存商品を正しく見つけられる）
+    if (!dryRun) {
+        const allForNorm = await prisma.product.findMany({
+            where: { isActive: true },
+            select: { id: true, name: true, normalizedName: true },
+        });
+        let updatedNames = 0;
+        for (const p of allForNorm) {
+            const newNorm = normalizeProductName(p.name);
+            if (newNorm !== p.normalizedName) {
+                await prisma.product.update({ where: { id: p.id }, data: { normalizedName: newNorm } });
+                updatedNames++;
+            }
+        }
+        console.log(`normalizedName pre-updated: ${updatedNames}`);
+    }
 
     const products = await prisma.product.findMany({
         where: { isActive: true },
@@ -130,16 +194,12 @@ async function main() {
                     title: offer.title,
                     petType,
                     imageUrl: offer.imageUrl,
+                    excludeProductId: product.id,
                 });
 
                 if (correctProductId === BigInt(-1)) {
                     console.log(`[DRY] would move offer=${offer.id} "${offer.title.slice(0, 40)}" from product=${product.id}`);
                     moved++;
-                    continue;
-                }
-
-                if (correctProductId === product.id) {
-                    skipped++;
                     continue;
                 }
 

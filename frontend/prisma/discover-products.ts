@@ -71,10 +71,15 @@ function sleep(ms: number) {
 
 function normalizeProductName(name: string | null | undefined): string {
     if (!name) return '';
+    // ブラケット内にサイズ・個数・セット数が含まれる場合は保持する
+    const SIZE_RE = /\d+(?:\.\d+)?(?:kg|ml|g|l|m|枚|個|袋|本|pcs)|[sml]サイズ|\b(?:xs|xl|xxl)\b/;
+    const keepIfSize = (content: string) => SIZE_RE.test(content) ? ` ${content} ` : ' ';
     return name
         .normalize('NFKC').toLowerCase()
-        .replace(/【[^】]*】/g, ' ').replace(/\[[^\]]*]/g, ' ')
-        .replace(/（[^）]*）/g, ' ').replace(/\([^)]*\)/g, ' ')
+        .replace(/【([^】]*)】/g, (_, c) => keepIfSize(c))
+        .replace(/\[([^\]]*)\]/g, (_, c) => keepIfSize(c))
+        .replace(/（([^）]*)）/g, (_, c) => keepIfSize(c))
+        .replace(/\(([^)]*)\)/g, (_, c) => keepIfSize(c))
         .replace(/送料無料|送料込み|正規品|公式|最安値|限定|お買い得/g, ' ')
         .replace(/ポイント\d+倍|ポイントアップ|セール/gi, ' ')
         .replace(/税込|あす楽|翌日配送/g, ' ')
@@ -92,8 +97,22 @@ function inferPetType(text: string): string {
 
 function extractPackageSize(name: string): string | null {
     const n = name.normalize('NFKC').toLowerCase();
-    const patterns = [/\b\d+(?:\.\d+)?kg\b/, /\b\d+(?:\.\d+)?g\b/, /\b\d+(?:\.\d+)?l\b/,
-        /\b\d+(?:\.\d+)?ml\b/, /\b\d+枚\b/, /\b\d+個\b/, /\b\d+袋\b/, /\b\d+本\b/, /\b\d+pcs\b/];
+    // ml/mg/kg を先に評価し、m/g/l の誤マッチを防ぐ
+    const patterns = [
+        /\d+(?:\.\d+)?kg/,
+        /\d+(?:\.\d+)?ml/,
+        /\d+(?:\.\d+)?mg/,
+        /\d+(?:\.\d+)?g(?![a-z])/,
+        /\d+(?:\.\d+)?l(?![a-z])/,
+        /\d+(?:\.\d+)?m(?![a-z])/,  // メートル (リード等)
+        /\d+枚/,
+        /\d+個/,
+        /\d+袋/,
+        /\d+本/,
+        /\d+pcs/,
+        /[sml]サイズ/,               // S/M/L サイズ
+        /\bxs\b|\bxl\b|\bxxl\b/,
+    ];
     for (const p of patterns) {
         const m = n.match(p);
         if (m) return m[0];
@@ -201,9 +220,15 @@ async function findOrCreateProduct(params: {
         });
         if (match) return { id: match.id, created: false };
     }
-    // categoryId を除外して検索（同一商品が異なるジャンルで取り込まれても重複しないようにする）
+    // packageSize も一致キーに含め、容量・個数違いを別商品として扱う
     const nameMatch = await prisma.product.findFirst({
-        where: { petType: params.petType, normalizedName, isActive: true, ...(brandId ? { brandId } : {}) },
+        where: {
+            petType: params.petType,
+            normalizedName,
+            packageSize: packageSize ?? null,
+            isActive: true,
+            ...(brandId ? { brandId } : {}),
+        },
         select: { id: true },
     });
     if (nameMatch) return { id: nameMatch.id, created: false };
