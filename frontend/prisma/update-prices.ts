@@ -18,14 +18,14 @@ if (!accessKey) throw new Error('RAKUTEN_ACCESS_KEY is not set');
 const prisma = new PrismaClient({
     adapter: new PrismaPg(new Pool({
         connectionString,
-        max: 3,
+        max: 5,
         idleTimeoutMillis: 60000,
-        connectionTimeoutMillis: 10000,
+        connectionTimeoutMillis: 30000,
     })),
 });
 
 // ---- 設定 ----
-const GENRE_CONCURRENCY = 3;
+const GENRE_CONCURRENCY = 2;
 const HITS_PER_PAGE = 30;
 const API_INTERVAL_MS = 1000;
 
