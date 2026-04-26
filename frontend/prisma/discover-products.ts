@@ -452,38 +452,47 @@ async function main() {
                 const effectivePrice = item.itemPrice - pointAmount;
                 const shippingFee = item.postageFlag === 1 ? 0 : null;
 
-                await prisma.$transaction(async (tx) => {
-                    const offer = await tx.productOffer.create({
-                        data: {
-                            product: { connect: { id: productId } },
-                            shopType: 'rakuten',
-                            externalItemId: item.itemCode,
-                            externalUrl: item.itemUrl,
-                            title: item.itemName,
-                            sellerName: item.shopName,
-                            price: item.itemPrice,
-                            shippingFee,
-                            pointAmount,
-                            effectivePrice,
-                            imageUrl,
-                            lastFetchedAt: now,
-                            isActive: true,
-                        },
-                        select: { id: true },
-                    });
+                try {
+                    await prisma.$transaction(async (tx) => {
+                        const offer = await tx.productOffer.create({
+                            data: {
+                                product: { connect: { id: productId } },
+                                shopType: 'rakuten',
+                                externalItemId: item.itemCode,
+                                externalUrl: item.itemUrl,
+                                title: item.itemName,
+                                sellerName: item.shopName,
+                                price: item.itemPrice,
+                                shippingFee,
+                                pointAmount,
+                                effectivePrice,
+                                imageUrl,
+                                lastFetchedAt: now,
+                                isActive: true,
+                            },
+                            select: { id: true },
+                        });
 
-                    await tx.priceHistory.create({
-                        data: {
-                            productOffer: { connect: { id: offer.id } },
-                            price: item.itemPrice,
-                            shippingFee,
-                            pointAmount,
-                            effectivePrice,
-                            fetchedAt: now,
-                        },
+                        await tx.priceHistory.create({
+                            data: {
+                                productOfferId: offer.id,
+                                price: item.itemPrice,
+                                shippingFee,
+                                pointAmount,
+                                effectivePrice,
+                                fetchedAt: now,
+                            },
+                        });
                     });
-                });
-                totalCreatedOffers++;
+                    totalCreatedOffers++;
+                } catch (e: any) {
+                    if (e?.code === 'P2002') {
+                        // 並列ジャンル処理での重複 → 別ワーカーが先に登録済み
+                        totalSkippedOffers++;
+                    } else {
+                        throw e;
+                    }
+                }
             }
 
             page++;
