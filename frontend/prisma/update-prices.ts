@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { appendFileSync } from 'fs';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -134,8 +135,11 @@ async function main() {
     const updatedOfferIds = new Set<bigint>();
     const now = new Date();
 
-    let priceUpdated = 0;
+    let priceDecreased = 0;
+    let priceIncreased = 0;
     let priceUnchanged = 0;
+    let baselineCreated = 0;
+    let errors = 0;
 
     await runConcurrent(genres, GENRE_CONCURRENCY, async (genre) => {
         // 全ページをスキャンして itemCode→ItemData マップを構築
@@ -168,6 +172,7 @@ async function main() {
                 externalItemId: true,
                 price: true,
                 pointAmount: true,
+                effectivePrice: true,
                 _count: { select: { priceHistories: true } },
             },
         });
@@ -183,34 +188,43 @@ async function main() {
 
             updatedOfferIds.add(offer.id);
 
-            await prisma.productOffer.update({
-                where: { id: offer.id },
-                data: { price: newPrice, pointAmount: newPointAmount, effectivePrice: newEffectivePrice, shippingFee: newShippingFee, lastFetchedAt: now },
-            });
-
-            const priceChanged = newPrice !== offer.price || newPointAmount !== offer.pointAmount;
-            const hasNoHistory = offer._count.priceHistories === 0;
-
-            if (priceChanged || hasNoHistory) {
-                await prisma.priceHistory.create({
-                    data: {
-                        productOffer: { connect: { id: offer.id } },
-                        price: newPrice,
-                        shippingFee: newShippingFee,
-                        pointAmount: newPointAmount,
-                        effectivePrice: newEffectivePrice,
-                        fetchedAt: now,
-                    },
+            try {
+                await prisma.productOffer.update({
+                    where: { id: offer.id },
+                    data: { price: newPrice, pointAmount: newPointAmount, effectivePrice: newEffectivePrice, shippingFee: newShippingFee, lastFetchedAt: now },
                 });
-                if (priceChanged) {
-                    console.log(`[updated] ${offer.externalItemId} ${offer.price} → ${newPrice}`);
-                    priceUpdated++;
+
+                const priceChanged = newPrice !== offer.price || newPointAmount !== offer.pointAmount;
+                const hasNoHistory = offer._count.priceHistories === 0;
+
+                if (priceChanged || hasNoHistory) {
+                    await prisma.priceHistory.create({
+                        data: {
+                            productOfferId: offer.id,
+                            price: newPrice,
+                            shippingFee: newShippingFee,
+                            pointAmount: newPointAmount,
+                            effectivePrice: newEffectivePrice,
+                            fetchedAt: now,
+                        },
+                    });
+                    if (priceChanged) {
+                        if (newEffectivePrice < offer.effectivePrice) {
+                            console.log(`[↓ down] ${offer.externalItemId} ¥${offer.effectivePrice} → ¥${newEffectivePrice}`);
+                            priceDecreased++;
+                        } else {
+                            console.log(`[↑ up] ${offer.externalItemId} ¥${offer.effectivePrice} → ¥${newEffectivePrice}`);
+                            priceIncreased++;
+                        }
+                    } else {
+                        baselineCreated++;
+                    }
                 } else {
-                    console.log(`[baseline] ${offer.externalItemId} ¥${newPrice}`);
-                    priceUpdated++;
+                    priceUnchanged++;
                 }
-            } else {
-                priceUnchanged++;
+            } catch (e) {
+                console.error(`[error] offer=${offer.id} item=${offer.externalItemId}`, e);
+                errors++;
             }
         }
 
@@ -223,16 +237,22 @@ async function main() {
         select: { id: true, price: true, shippingFee: true, pointAmount: true, effectivePrice: true },
     });
     for (const offer of noHistoryOffers) {
-        await prisma.priceHistory.create({
-            data: {
-                productOffer: { connect: { id: offer.id } },
-                price: offer.price,
-                shippingFee: offer.shippingFee,
-                pointAmount: offer.pointAmount,
-                effectivePrice: offer.effectivePrice,
-                fetchedAt: now,
-            },
-        });
+        try {
+            await prisma.priceHistory.create({
+                data: {
+                    productOfferId: offer.id,
+                    price: offer.price,
+                    shippingFee: offer.shippingFee,
+                    pointAmount: offer.pointAmount,
+                    effectivePrice: offer.effectivePrice,
+                    fetchedAt: now,
+                },
+            });
+            baselineCreated++;
+        } catch (e) {
+            console.error(`[error] backfill offer=${offer.id}`, e);
+            errors++;
+        }
     }
     if (noHistoryOffers.length > 0) {
         console.log(`[backfill] 履歴0件のoffer ${noHistoryOffers.length}件にbaseline作成`);
@@ -252,10 +272,32 @@ async function main() {
     console.log('update-prices done');
     console.log({
         genres: genres.length,
-        priceUpdated,
+        priceDecreased,
+        priceIncreased,
         priceUnchanged,
+        baselineCreated,
         deactivated: deactivated.count,
+        errors,
     });
+
+    const summaryFile = process.env.GITHUB_STEP_SUMMARY;
+    if (summaryFile) {
+        const lines = [
+            '## Update Prices 結果',
+            '',
+            '| 項目 | 件数 |',
+            '|------|-----:|',
+            `| 値下がり | ${priceDecreased} |`,
+            `| 値上がり | ${priceIncreased} |`,
+            `| 価格変動なし | ${priceUnchanged} |`,
+            `| ベースライン作成 | ${baselineCreated} |`,
+            `| 非アクティブ化 | ${deactivated.count} |`,
+            `| エラー | ${errors} |`,
+            `| ジャンル数 | ${genres.length} |`,
+            '',
+        ];
+        appendFileSync(summaryFile, lines.join('\n'));
+    }
 }
 
 main()

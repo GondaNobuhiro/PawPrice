@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { appendFileSync } from 'fs';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -402,6 +403,7 @@ async function main() {
     let totalCreatedOffers = 0;
     let totalSkippedOffers = 0;
     let totalSkippedNonPet = 0;
+    let totalErrors = 0;
 
     await runConcurrent(genres, GENRE_CONCURRENCY, async (genre) => {
         const category = await ensureCategoryForGenre(genre.name, parentByCode);
@@ -490,7 +492,8 @@ async function main() {
                         // 並列ジャンル処理での重複 → 別ワーカーが先に登録済み
                         totalSkippedOffers++;
                     } else {
-                        throw e;
+                        console.error(`[error] item=${item.itemCode}`, e);
+                        totalErrors++;
                     }
                 }
             }
@@ -503,7 +506,25 @@ async function main() {
     });
 
     console.log('discover-products done');
-    console.log({ genres: genres.length, totalCreatedProducts, totalCreatedOffers, totalSkippedOffers, totalSkippedNonPet });
+    console.log({ genres: genres.length, totalCreatedProducts, totalCreatedOffers, totalSkippedOffers, totalSkippedNonPet, totalErrors });
+
+    const summaryFile = process.env.GITHUB_STEP_SUMMARY;
+    if (summaryFile) {
+        const lines = [
+            '## Discover Products 結果',
+            '',
+            '| 項目 | 件数 |',
+            '|------|-----:|',
+            `| 商品新規追加 | ${totalCreatedProducts} |`,
+            `| オファー新規追加 | ${totalCreatedOffers} |`,
+            `| スキップ（既存） | ${totalSkippedOffers} |`,
+            `| スキップ（非ペット） | ${totalSkippedNonPet} |`,
+            `| エラー | ${totalErrors} |`,
+            `| ジャンル数 | ${genres.length} |`,
+            '',
+        ];
+        appendFileSync(summaryFile, lines.join('\n'));
+    }
 }
 
 main()
