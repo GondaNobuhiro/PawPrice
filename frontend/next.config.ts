@@ -9,6 +9,17 @@ const nextConfig: NextConfig = {
             },
         ],
     },
+    async headers() {
+        if (process.env.VERCEL_ENV !== 'production') {
+            return [
+                {
+                    source: '/(.*)',
+                    headers: [{ key: 'X-Robots-Tag', value: 'noindex' }],
+                },
+            ];
+        }
+        return [];
+    },
 };
 
 export default nextConfig;
