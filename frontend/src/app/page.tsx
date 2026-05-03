@@ -229,8 +229,18 @@ export default async function Home({ searchParams }: Props) {
                 </section>
 
                 {products.length === 0 ? (
-                    <section className="rounded-3xl border border-sky-100 bg-white p-10 text-center text-sm text-gray-500 shadow-sm">
-                        条件に一致する商品はありません 🐾
+                    <section className="rounded-3xl border border-sky-100 bg-white p-10 text-center shadow-sm">
+                        <div className="mb-6 flex justify-center">
+                            <Image
+                                src="/image/dogs-playing.jpeg"
+                                alt="ポメラニアン"
+                                width={220}
+                                height={155}
+                                className="rounded-2xl object-cover shadow-sm"
+                            />
+                        </div>
+                        <p className="font-semibold text-gray-700">条件に一致する商品はありません</p>
+                        <p className="mt-1 text-sm text-gray-400">検索条件を変えてお試しください</p>
                     </section>
                 ) : (
                     <>

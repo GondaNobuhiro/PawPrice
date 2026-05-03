@@ -12,13 +12,13 @@ export default async function NotificationsPage() {
     const unreadCount = notifications.filter((n) => !n.isRead).length;
 
     return (
-        <main className="min-h-screen bg-[#f8f4ee] px-6 py-8">
+        <main className="min-h-screen bg-[#f0f9ff] px-6 py-8">
             <div className="mx-auto max-w-5xl space-y-6">
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-2xl font-bold text-[#4b3425]">通知</h1>
+                        <h1 className="text-2xl font-bold text-gray-800">通知</h1>
                         {unreadCount > 0 && (
-                            <span className="rounded-full bg-[#d98f5c] px-2.5 py-0.5 text-sm font-bold text-white">
+                            <span className="rounded-full bg-[#f97316] px-2.5 py-0.5 text-sm font-bold text-white">
                                 {unreadCount}
                             </span>
                         )}
@@ -27,10 +27,10 @@ export default async function NotificationsPage() {
                 </div>
 
                 {notifications.length === 0 ? (
-                    <div className="rounded-3xl border border-[#eadfce] bg-white px-6 py-16 text-center shadow-sm">
+                    <div className="rounded-3xl border border-sky-100 bg-white px-6 py-16 text-center shadow-sm">
                         <div className="mb-4 text-5xl">🔔</div>
-                        <p className="font-medium text-[#4b3425]">通知はありません</p>
-                        <p className="mt-1 text-sm text-[#7a6657]">
+                        <p className="font-semibold text-gray-700">通知はありません</p>
+                        <p className="mt-1 text-sm text-gray-400">
                             ウォッチ中の商品が値下がりしたときにお知らせします
                         </p>
                     </div>
