@@ -116,7 +116,7 @@ export default async function Home({ searchParams }: Props) {
                                 className="object-cover object-center"
                                 priority
                             />
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#38bdf8] via-[#38bdf8]/40 to-transparent" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#38bdf8]/60 via-[#38bdf8]/15 to-transparent" />
                         </div>
 
                         <div className="relative z-10 max-w-xl">
