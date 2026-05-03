@@ -16,7 +16,7 @@ export default function AppHeader() {
     const pathname = usePathname();
 
     return (
-        <header className="sticky top-0 z-40 border-b border-white/10 bg-[#3d2b1a]/95 backdrop-blur">
+        <header className="sticky top-0 z-40 border-b border-white/10 bg-[#6b4a2a]/95 backdrop-blur">
             <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
                 <div className="flex items-center gap-6">
                     <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
@@ -59,7 +59,7 @@ export default function AppHeader() {
 
             {/* モバイルメニュー */}
             {open && (
-                <nav className="border-t border-white/10 bg-[#3d2b1a] px-6 py-3 md:hidden">
+                <nav className="border-t border-white/10 bg-[#6b4a2a] px-6 py-3 md:hidden">
                     {NAV_LINKS.map(({ href, label }) => (
                         <Link
                             key={href}

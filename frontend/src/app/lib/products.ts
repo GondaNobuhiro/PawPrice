@@ -80,6 +80,7 @@ async function fetchProducts(params: {
 
     const where = {
         isActive: true,
+        offers: { some: { isActive: true } },
         ...(q ? { OR: [
             { name: { contains: q, mode: 'insensitive' as const } },
             { normalizedName: { contains: q, mode: 'insensitive' as const } },

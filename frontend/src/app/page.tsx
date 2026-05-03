@@ -90,7 +90,7 @@ export default async function Home({ searchParams }: Props) {
 
                 {/* ヒーローセクション（トップページのみ） */}
                 {!isFiltered && page === '1' ? (
-                    <section className="rounded-3xl bg-gradient-to-br from-[#3d2b1a] via-[#5c3d25] to-[#7a5237] p-8 text-white shadow-lg md:p-12">
+                    <section className="rounded-3xl bg-gradient-to-br from-[#6b4a2a] via-[#8a6040] to-[#a67a55] p-8 text-white shadow-lg md:p-12">
                         <div className="max-w-2xl">
                             <div className="mb-4 inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white/90">
                                 🐾 Dog &amp; Cat Price Watch
@@ -335,11 +335,7 @@ export default async function Home({ searchParams }: Props) {
                                                         <WatchButton productId={product.id} />
                                                     </div>
                                                 </div>
-                                            ) : (
-                                                <div className="rounded-2xl border border-[#efe4d7] bg-[#faf5ef] p-4 text-sm text-[#9f8d80]">
-                                                    オファー情報がありません
-                                                </div>
-                                            )}
+                                            ) : null}
                                         </div>
                                     </div>
                                 </article>
