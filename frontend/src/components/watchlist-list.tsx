@@ -21,13 +21,15 @@ export default function WatchlistList({ initialItems }: Props) {
         return (
             <div className="rounded-3xl border border-sky-100 bg-white px-6 py-12 text-center shadow-sm">
                 <div className="mb-6 flex justify-center">
-                    <Image
-                        src="/image/dog-running.jpeg"
-                        alt="ポメラニアン"
-                        width={220}
-                        height={145}
-                        className="rounded-2xl object-cover shadow-sm"
-                    />
+                    <div className="relative h-44 w-64 overflow-hidden rounded-2xl shadow-sm">
+                        <Image
+                            src="/image/dog-running.jpeg"
+                            alt="ポメラニアン"
+                            fill
+                            className="object-cover"
+                            style={{ objectPosition: 'center 60%', transform: 'scale(1.6)', transformOrigin: 'center 60%' }}
+                        />
+                    </div>
                 </div>
                 <p className="font-semibold text-gray-700">ウォッチ中の商品はありません</p>
                 <p className="mt-1 text-sm text-gray-400">

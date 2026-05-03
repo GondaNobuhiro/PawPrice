@@ -231,13 +231,15 @@ export default async function Home({ searchParams }: Props) {
                 {products.length === 0 ? (
                     <section className="rounded-3xl border border-sky-100 bg-white p-10 text-center shadow-sm">
                         <div className="mb-6 flex justify-center">
-                            <Image
-                                src="/image/dogs-playing.jpeg"
-                                alt="ポメラニアン"
-                                width={220}
-                                height={155}
-                                className="rounded-2xl object-cover shadow-sm"
-                            />
+                            <div className="relative h-44 w-64 overflow-hidden rounded-2xl shadow-sm">
+                                <Image
+                                    src="/image/dogs-playing.jpeg"
+                                    alt="ポメラニアン"
+                                    fill
+                                    className="object-cover"
+                                    style={{ objectPosition: 'center 65%', transform: 'scale(1.8)', transformOrigin: 'center 65%' }}
+                                />
+                            </div>
                         </div>
                         <p className="font-semibold text-gray-700">条件に一致する商品はありません</p>
                         <p className="mt-1 text-sm text-gray-400">検索条件を変えてお試しください</p>
