@@ -107,13 +107,19 @@ export default async function Home({ searchParams }: Props) {
                 {/* ヒーローセクション（トップページのみ） */}
                 {!isFiltered && page === '1' ? (
                     <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0ea5e9] via-[#38bdf8] to-[#7dd3fc] p-8 text-white shadow-lg md:p-12">
-                        {/* 装飾ペット絵文字 */}
-                        <div className="pointer-events-none absolute right-8 top-1/2 hidden -translate-y-1/2 select-none flex-col gap-6 opacity-20 md:flex">
-                            <span className="text-8xl">🐶</span>
-                            <span className="text-8xl">🐱</span>
+                        {/* 右側の写真（デスクトップのみ） */}
+                        <div className="absolute bottom-0 right-0 top-0 hidden w-80 overflow-hidden rounded-r-3xl md:block">
+                            <Image
+                                src="/image/dogs-with-bowl.jpeg"
+                                alt="ポメラニアン"
+                                fill
+                                className="object-cover object-center"
+                                priority
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#38bdf8] via-[#38bdf8]/40 to-transparent" />
                         </div>
 
-                        <div className="max-w-2xl">
+                        <div className="relative z-10 max-w-xl">
                             <div className="mb-4 inline-flex rounded-full bg-white/25 px-3 py-1 text-xs font-semibold text-white">
                                 🐾 Dog &amp; Cat Price Watch
                             </div>
