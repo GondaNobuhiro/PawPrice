@@ -16,11 +16,12 @@ export default function AppHeader() {
     const pathname = usePathname();
 
     return (
-        <header className="sticky top-0 z-40 border-b border-white/10 bg-[#6b4a2a]/95 backdrop-blur">
+        <header className="sticky top-0 z-40 border-b border-sky-300/40 bg-gradient-to-r from-[#0ea5e9] to-[#38bdf8] shadow-sm">
             <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
                 <div className="flex items-center gap-6">
-                    <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
+                    <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
                         <img src="/logo.png" alt="PawPrice" className="h-25 w-25 rounded-xl" />
+                        <span className="hidden text-lg text-white/80 sm:block">🐾</span>
                     </Link>
 
                     {/* PC nav */}
@@ -31,8 +32,8 @@ export default function AppHeader() {
                                 href={href}
                                 className={`rounded-full px-4 py-2 text-sm transition ${
                                     pathname === href
-                                        ? 'bg-white/20 font-medium text-white'
-                                        : 'text-white/70 hover:bg-white/10 hover:text-white'
+                                        ? 'bg-white/30 font-semibold text-white'
+                                        : 'text-white/85 hover:bg-white/20 hover:text-white'
                                 }`}
                             >
                                 {label}
@@ -46,7 +47,7 @@ export default function AppHeader() {
 
                     {/* ハンバーガーボタン（モバイルのみ） */}
                     <button
-                        className="flex h-9 w-9 flex-col items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/10 md:hidden"
+                        className="flex h-9 w-9 flex-col items-center justify-center gap-1.5 rounded-xl border border-white/30 bg-white/20 md:hidden"
                         onClick={() => setOpen((v) => !v)}
                         aria-label="メニュー"
                     >
@@ -59,7 +60,7 @@ export default function AppHeader() {
 
             {/* モバイルメニュー */}
             {open && (
-                <nav className="border-t border-white/10 bg-[#6b4a2a] px-6 py-3 md:hidden">
+                <nav className="border-t border-white/20 bg-[#0ea5e9] px-6 py-3 md:hidden">
                     {NAV_LINKS.map(({ href, label }) => (
                         <Link
                             key={href}
@@ -67,8 +68,8 @@ export default function AppHeader() {
                             onClick={() => setOpen(false)}
                             className={`block rounded-xl px-4 py-3 text-sm transition ${
                                 pathname === href
-                                    ? 'bg-white/20 font-medium text-white'
-                                    : 'text-white/70 hover:bg-white/10'
+                                    ? 'bg-white/30 font-semibold text-white'
+                                    : 'text-white/85 hover:bg-white/20'
                             }`}
                         >
                             {label}

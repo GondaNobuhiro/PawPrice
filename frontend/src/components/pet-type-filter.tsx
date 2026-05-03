@@ -25,20 +25,20 @@ function buildHref(
 }
 
 export default function PetTypeFilter({
-                                          q,
-                                          categoryId,
-                                          sort,
-                                          selectedPetType,
-                                      }: Props) {
+    q,
+    categoryId,
+    sort,
+    selectedPetType,
+}: Props) {
     const options = [
-        { value: '', label: 'すべて' },
-        { value: 'dog', label: '犬' },
-        { value: 'cat', label: '猫' },
+        { value: '', label: '🐾 すべて' },
+        { value: 'dog', label: '🐕 犬' },
+        { value: 'cat', label: '🐈 猫' },
     ];
 
     return (
         <div className="mb-6">
-            <div className="mb-2 text-sm font-medium text-[#7a6657]">ペット</div>
+            <div className="mb-2 text-sm font-medium text-gray-500">ペット</div>
 
             <div className="flex flex-wrap gap-2">
                 {options.map((option) => (
@@ -47,8 +47,8 @@ export default function PetTypeFilter({
                         href={buildHref(q, categoryId, sort, option.value)}
                         className={`rounded-full px-4 py-2 text-sm transition ${
                             selectedPetType === option.value
-                                ? 'bg-[#8fb996] text-white'
-                                : 'border border-[#eadfce] bg-[#fffaf3] text-[#7a6657] hover:bg-[#eef6ef]'
+                                ? 'bg-[#0ea5e9] text-white shadow-sm'
+                                : 'border border-sky-200 bg-white text-gray-600 hover:bg-sky-50'
                         }`}
                     >
                         {option.label}

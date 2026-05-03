@@ -63,7 +63,7 @@ export default function RootLayout({
 }>) {
   return (
       <html lang="ja">
-      <body className={`${notoSansJP.className} bg-[#f8f4ee] text-gray-900`}>
+      <body className={`${notoSansJP.className} bg-[#f0f9ff] text-gray-900`}>
       <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
       <Script id="ga-init" strategy="afterInteractive">{`
         window.dataLayer = window.dataLayer || [];

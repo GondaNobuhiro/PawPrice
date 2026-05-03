@@ -52,7 +52,7 @@ export default function CategoryFilterChips({
 
     return (
         <div className="mb-6 space-y-3">
-            <div className="mb-2 text-sm font-medium text-[#7a6657]">カテゴリ</div>
+            <div className="mb-2 text-sm font-medium text-gray-500">カテゴリ</div>
 
             {/* 親カテゴリ */}
             <div className="flex flex-wrap gap-2">
@@ -60,8 +60,8 @@ export default function CategoryFilterChips({
                     href={buildHref('', q, sort, petType)}
                     className={`rounded-full px-4 py-2 text-sm transition ${
                         selectedCategoryId === ''
-                            ? 'bg-[#d98f5c] text-white'
-                            : 'border border-[#eadfce] bg-[#fffaf3] text-[#7a6657] hover:bg-[#f5e8d8]'
+                            ? 'bg-[#0ea5e9] text-white shadow-sm'
+                            : 'border border-sky-200 bg-white text-gray-600 hover:bg-sky-50'
                     }`}
                 >
                     すべて
@@ -77,8 +77,8 @@ export default function CategoryFilterChips({
                             href={buildHref(category.id, q, sort, petType)}
                             className={`rounded-full px-4 py-2 text-sm transition ${
                                 isActive
-                                    ? 'bg-[#d98f5c] text-white'
-                                    : 'border border-[#eadfce] bg-[#fffaf3] text-[#7a6657] hover:bg-[#f5e8d8]'
+                                    ? 'bg-[#0ea5e9] text-white shadow-sm'
+                                    : 'border border-sky-200 bg-white text-gray-600 hover:bg-sky-50'
                             }`}
                         >
                             {category.name}
@@ -89,13 +89,13 @@ export default function CategoryFilterChips({
 
             {/* 子カテゴリ（親選択時のみ表示） */}
             {selectedParent && selectedParent.children.length > 0 && (
-                <div className="flex flex-wrap gap-2 border-l-2 border-[#e8d8c4] pl-4">
+                <div className="flex flex-wrap gap-2 border-l-2 border-sky-200 pl-4">
                     <Link
                         href={buildHref(selectedParent.id, q, sort, petType)}
                         className={`rounded-full px-3 py-1.5 text-xs transition ${
                             selectedCategoryId === selectedParent.id
-                                ? 'bg-[#c97d49] text-white'
-                                : 'border border-[#e8d8c4] bg-[#fdf7f0] text-[#8a7060] hover:bg-[#f5e8d8]'
+                                ? 'bg-sky-400 text-white shadow-sm'
+                                : 'border border-sky-200 bg-white text-gray-500 hover:bg-sky-50'
                         }`}
                     >
                         すべて ({selectedParent.productCount})
@@ -106,8 +106,8 @@ export default function CategoryFilterChips({
                             href={buildHref(child.id, q, sort, petType)}
                             className={`rounded-full px-3 py-1.5 text-xs transition ${
                                 child.id === selectedCategoryId
-                                    ? 'bg-[#c97d49] text-white'
-                                    : 'border border-[#e8d8c4] bg-[#fdf7f0] text-[#8a7060] hover:bg-[#f5e8d8]'
+                                    ? 'bg-sky-400 text-white shadow-sm'
+                                    : 'border border-sky-200 bg-white text-gray-500 hover:bg-sky-50'
                             }`}
                         >
                             {child.name} ({child.productCount})

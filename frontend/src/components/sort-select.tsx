@@ -29,13 +29,13 @@ export default function SortSelect({ q, categoryId, petType, selectedSort, total
     const options = [
         { value: 'newest', label: '新着順' },
         { value: 'price_asc', label: '安い順' },
-        { value: 'price_down', label: '値下がり中' },
+        { value: 'price_down', label: '🔻 値下がり中' },
     ];
 
     return (
         <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-                <div className="text-sm font-medium text-[#7a6657]">並び替え</div>
+                <div className="text-sm font-medium text-gray-500">並び替え</div>
                 <div className="flex flex-wrap gap-2">
                     {options.map((option) => (
                         <Link
@@ -43,8 +43,8 @@ export default function SortSelect({ q, categoryId, petType, selectedSort, total
                             href={buildHref(q, categoryId, petType, option.value)}
                             className={`rounded-full px-4 py-2 text-sm transition ${
                                 selectedSort === option.value
-                                    ? 'bg-[#c97d49] text-white'
-                                    : 'border border-[#eadfce] bg-[#fffaf3] text-[#7a6657] hover:bg-[#f5e8d8]'
+                                    ? 'bg-[#0ea5e9] text-white shadow-sm'
+                                    : 'border border-sky-200 bg-white text-gray-600 hover:bg-sky-50'
                             }`}
                         >
                             {option.label}
@@ -52,8 +52,8 @@ export default function SortSelect({ q, categoryId, petType, selectedSort, total
                     ))}
                 </div>
             </div>
-            <div className="text-sm text-[#7a6657]">
-                <span className="font-medium text-[#5c4331]">{totalCount.toLocaleString()}</span> 件
+            <div className="text-sm text-gray-500">
+                <span className="font-semibold text-sky-600">{totalCount.toLocaleString()}</span> 件
             </div>
         </div>
     );
