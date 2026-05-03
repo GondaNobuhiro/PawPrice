@@ -27,7 +27,7 @@ export default function WatchlistList({ initialItems }: Props) {
                             alt="ポメラニアン"
                             fill
                             className="object-cover"
-                            style={{ objectPosition: 'center 60%', transform: 'scale(1.6)', transformOrigin: 'center 60%' }}
+                            style={{ objectPosition: '30% 40%', transform: 'scale(1.6)', transformOrigin: '30% 40%' }}
                         />
                     </div>
                 </div>

@@ -237,7 +237,7 @@ export default async function Home({ searchParams }: Props) {
                                     alt="ポメラニアン"
                                     fill
                                     className="object-cover"
-                                    style={{ objectPosition: 'center 65%', transform: 'scale(1.8)', transformOrigin: 'center 65%' }}
+                                    style={{ objectPosition: '70% 40%', transform: 'scale(1.8)', transformOrigin: '70% 40%' }}
                                 />
                             </div>
                         </div>
