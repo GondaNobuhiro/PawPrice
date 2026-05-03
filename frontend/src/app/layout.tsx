@@ -1,7 +1,14 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { Noto_Sans_JP } from 'next/font/google';
 import './globals.css';
 import AppHeader from '@/src/components/app-header';
+
+const notoSansJP = Noto_Sans_JP({
+    subsets: ['latin'],
+    weight: ['400', '500', '600', '700'],
+    display: 'swap',
+});
 
 const GA_ID = 'G-09ZJYSBLQC';
 
@@ -56,7 +63,7 @@ export default function RootLayout({
 }>) {
   return (
       <html lang="ja">
-      <body className="bg-gray-50 text-gray-900">
+      <body className={`${notoSansJP.className} bg-[#f8f4ee] text-gray-900`}>
       <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
       <Script id="ga-init" strategy="afterInteractive">{`
         window.dataLayer = window.dataLayer || [];

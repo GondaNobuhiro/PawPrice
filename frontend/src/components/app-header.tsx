@@ -16,7 +16,7 @@ export default function AppHeader() {
     const pathname = usePathname();
 
     return (
-        <header className="sticky top-0 z-40 border-b border-[#eadfce] bg-[#fffaf3]/95 backdrop-blur">
+        <header className="sticky top-0 z-40 border-b border-white/10 bg-[#3d2b1a]/95 backdrop-blur">
             <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
                 <div className="flex items-center gap-6">
                     <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
@@ -31,8 +31,8 @@ export default function AppHeader() {
                                 href={href}
                                 className={`rounded-full px-4 py-2 text-sm transition ${
                                     pathname === href
-                                        ? 'bg-[#f5e8d8] font-medium text-[#4b3425]'
-                                        : 'text-[#7a6657] hover:bg-[#f5e8d8] hover:text-[#4b3425]'
+                                        ? 'bg-white/20 font-medium text-white'
+                                        : 'text-white/70 hover:bg-white/10 hover:text-white'
                                 }`}
                             >
                                 {label}
@@ -46,20 +46,20 @@ export default function AppHeader() {
 
                     {/* ハンバーガーボタン（モバイルのみ） */}
                     <button
-                        className="flex h-9 w-9 flex-col items-center justify-center gap-1.5 rounded-xl border border-[#eadfce] bg-white md:hidden"
+                        className="flex h-9 w-9 flex-col items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/10 md:hidden"
                         onClick={() => setOpen((v) => !v)}
                         aria-label="メニュー"
                     >
-                        <span className={`block h-0.5 w-5 bg-[#7a6657] transition-transform ${open ? 'translate-y-2 rotate-45' : ''}`} />
-                        <span className={`block h-0.5 w-5 bg-[#7a6657] transition-opacity ${open ? 'opacity-0' : ''}`} />
-                        <span className={`block h-0.5 w-5 bg-[#7a6657] transition-transform ${open ? '-translate-y-2 -rotate-45' : ''}`} />
+                        <span className={`block h-0.5 w-5 bg-white transition-transform ${open ? 'translate-y-2 rotate-45' : ''}`} />
+                        <span className={`block h-0.5 w-5 bg-white transition-opacity ${open ? 'opacity-0' : ''}`} />
+                        <span className={`block h-0.5 w-5 bg-white transition-transform ${open ? '-translate-y-2 -rotate-45' : ''}`} />
                     </button>
                 </div>
             </div>
 
             {/* モバイルメニュー */}
             {open && (
-                <nav className="border-t border-[#eadfce] bg-[#fffaf3] px-6 py-3 md:hidden">
+                <nav className="border-t border-white/10 bg-[#3d2b1a] px-6 py-3 md:hidden">
                     {NAV_LINKS.map(({ href, label }) => (
                         <Link
                             key={href}
@@ -67,8 +67,8 @@ export default function AppHeader() {
                             onClick={() => setOpen(false)}
                             className={`block rounded-xl px-4 py-3 text-sm transition ${
                                 pathname === href
-                                    ? 'bg-[#f5e8d8] font-medium text-[#4b3425]'
-                                    : 'text-[#7a6657] hover:bg-[#f5e8d8]'
+                                    ? 'bg-white/20 font-medium text-white'
+                                    : 'text-white/70 hover:bg-white/10'
                             }`}
                         >
                             {label}
