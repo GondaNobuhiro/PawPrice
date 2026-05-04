@@ -99,7 +99,7 @@ function StepCard({ step, icon, text }: { step: number; icon: React.ReactNode; t
 // ---- メインコンポーネント ----
 
 export default function PushSubscribeButton() {
-    const [status, setStatus] = useState<'checking' | 'idle' | 'loading' | 'done'>('checking');
+    const [status, setStatus] = useState<'checking' | 'idle' | 'loading' | 'done' | 'unsubscribing'>('checking');
     const [guide, setGuide] = useState<'ios-chrome' | 'ios-safari' | 'unsupported' | null>(null);
 
     // 既存のSubscriptionを確認して状態を復元
@@ -141,12 +141,11 @@ export default function PushSubscribeButton() {
             if (!publicKey) throw new Error('NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set');
 
             const existing = await ready.pushManager.getSubscription();
-            const subscription =
-                existing ??
-                (await ready.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
-                }));
+            if (existing) await existing.unsubscribe();
+            const subscription = await ready.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
+            });
 
             const res = await fetch('/api/push-subscriptions', {
                 method: 'POST',
@@ -163,14 +162,40 @@ export default function PushSubscribeButton() {
         }
     };
 
+    const handleUnsubscribe = async () => {
+        try {
+            setStatus('unsubscribing');
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+                await fetch('/api/push-subscriptions/unsubscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ endpoint: sub.endpoint }),
+                });
+                await sub.unsubscribe();
+            }
+            setStatus('idle');
+        } catch (error) {
+            console.error(error);
+            setStatus('done');
+        }
+    };
+
     if (status === 'checking') return null;
 
     return (
         <div>
             {status === 'done' ? (
-                <span className="rounded-xl bg-[#e5f3e8] px-4 py-2 text-sm font-medium text-[#3f7a50]">
+                <button
+                    type="button"
+                    onClick={handleUnsubscribe}
+                    className="rounded-xl bg-[#e5f3e8] px-4 py-2 text-sm font-medium text-[#3f7a50] transition hover:bg-[#d0ebda]"
+                >
                     通知ON ✓
-                </span>
+                </button>
+            ) : status === 'unsubscribing' ? (
+                <span className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-400">解除中...</span>
             ) : (
                 <button
                     type="button"

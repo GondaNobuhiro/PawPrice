@@ -22,7 +22,6 @@ export default function NotificationCard({ notification }: Props) {
     const router = useRouter();
     const [isRead, setIsRead] = useState(notification.isRead);
     const [removed, setRemoved] = useState(false);
-    const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [opening, setOpening] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -47,10 +46,10 @@ export default function NotificationCard({ notification }: Props) {
             const res = await fetch(`/api/notifications/${notification.id}`, { method: 'DELETE' });
             if (!res.ok) throw new Error();
             setRemoved(true);
+            router.refresh();
         } catch {
             setError('削除に失敗しました');
             setDeleting(false);
-            setConfirmDelete(false);
         }
     };
 
@@ -116,34 +115,14 @@ export default function NotificationCard({ notification }: Props) {
                     </a>
                 )}
 
-                {confirmDelete ? (
-                    <div className="ml-auto flex items-center gap-2">
-                        <span className="text-sm text-[#7a6657]">削除しますか？</span>
-                        <button
-                            type="button"
-                            onClick={handleDelete}
-                            disabled={deleting}
-                            className="rounded-xl bg-red-500 px-3 py-1.5 text-sm text-white disabled:opacity-50"
-                        >
-                            {deleting ? '削除中...' : '削除'}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setConfirmDelete(false)}
-                            className="rounded-xl border border-[#eadfce] px-3 py-1.5 text-sm text-[#7a6657] hover:bg-[#f5e8d8]"
-                        >
-                            キャンセル
-                        </button>
-                    </div>
-                ) : (
-                    <button
-                        type="button"
-                        onClick={() => setConfirmDelete(true)}
-                        className="ml-auto inline-flex items-center rounded-xl border border-[#eadfce] px-4 py-2 text-sm text-[#7a6657] hover:bg-[#f5e8d8]"
-                    >
-                        削除
-                    </button>
-                )}
+                <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="ml-auto inline-flex items-center rounded-xl border border-[#eadfce] px-4 py-2 text-sm text-[#7a6657] hover:bg-[#f5e8d8] disabled:opacity-50"
+                >
+                    {deleting ? '削除中...' : '削除'}
+                </button>
             </div>
 
             {error && (

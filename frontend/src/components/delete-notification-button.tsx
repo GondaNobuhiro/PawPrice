@@ -12,9 +12,6 @@ export default function DeleteNotificationButton({ notificationId }: Props) {
     const router = useRouter();
 
     const handleDelete = async () => {
-        const ok = window.confirm('この通知を削除しますか？');
-        if (!ok) return;
-
         try {
             setLoading(true);
 
