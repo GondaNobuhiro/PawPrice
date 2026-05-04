@@ -347,6 +347,10 @@ export async function getProduct(id: string): Promise<ProductDetail | null> {
             category: true,
             brand: true,
             offers: {
+                where: {
+                    isActive: true,
+                    lastFetchedAt: { gt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+                },
                 orderBy: { effectivePrice: 'asc' },
                 include: {
                     priceHistories: {

@@ -31,7 +31,7 @@ const HITS_PER_PAGE = 30;
 const API_INTERVAL_MS = 1000;
 
 // N日以上更新されていないofferを非アクティブ化
-const DEACTIVATE_AFTER_DAYS = 7;
+const DEACTIVATE_AFTER_DAYS = 30;
 
 type RakutenItemRaw = {
     itemName?: string;
