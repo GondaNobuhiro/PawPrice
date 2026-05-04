@@ -21,7 +21,6 @@ export default function AppHeader() {
                 <div className="flex items-center gap-6">
                     <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
                         <img src="/logo.png" alt="PawPrice" className="h-25 w-25 rounded-xl" />
-                        <span className="hidden text-lg text-white/80 sm:block">🐾</span>
                     </Link>
 
                     {/* PC nav */}
