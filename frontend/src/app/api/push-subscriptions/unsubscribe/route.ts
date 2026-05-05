@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/src/app/lib/prisma';
+import { getSessionUserId } from '@/src/app/lib/session';
 
 export async function POST(request: Request) {
     const body = (await request.json()) as { endpoint?: string };
@@ -8,9 +9,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'endpoint is required' }, { status: 400 });
     }
 
+    const userId = await getSessionUserId();
+
     await prisma.pushSubscription.updateMany({
         where: {
             endpoint: body.endpoint,
+            userId,
         },
         data: {
             isActive: false,
