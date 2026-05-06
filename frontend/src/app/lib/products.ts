@@ -326,7 +326,6 @@ export function getProducts(params: {
 export type ProductDetail = {
     id: string;
     name: string;
-    normalizedName: string | null;
     category: string;
     brand: string | null;
     petType: string;
@@ -380,7 +379,6 @@ export async function getProduct(id: string): Promise<ProductDetail | null> {
     return {
         id: product.id.toString(),
         name: product.name,
-        normalizedName: product.normalizedName,
         category: product.category.name,
         brand: product.brand?.name ?? null,
         petType: product.petType,

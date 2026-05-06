@@ -207,18 +207,6 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
                             ))}
                         </div>
                     )}
-
-                    <div className="mt-4 border-t border-[#eadfce] pt-4">
-                        <a
-                            href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(product.normalizedName ?? product.name)}&tag=pawpriceid-22`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-2 rounded-xl border border-[#eadfce] bg-[#f5f0ea] px-4 py-2 text-sm text-[#7a6657] transition hover:bg-[#f5e8d8]"
-                        >
-                            <span>🔍</span>
-                            Amazonで検索する →
-                        </a>
-                    </div>
                 </section>
             </div>
         </main>
