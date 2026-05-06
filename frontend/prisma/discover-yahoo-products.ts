@@ -224,6 +224,78 @@ async function fetchYahooItems(query: string, start: number): Promise<YahooSearc
     return res.json() as Promise<YahooSearchResponse>;
 }
 
+async function fetchYahooByJan(janCode: string): Promise<YahooHit[]> {
+    const url = new URL(API_BASE);
+    url.searchParams.set('appid', appId!);
+    url.searchParams.set('jan_code', janCode);
+    url.searchParams.set('results', String(RESULTS_PER_PAGE));
+    url.searchParams.set('in_stock', 'true');
+
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Yahoo API ${res.status}: ${text.slice(0, 300)}`);
+    }
+    const data = await res.json() as YahooSearchResponse;
+    return data.hits ?? [];
+}
+
+// ---- オファー登録共通処理 ----
+async function upsertOffer(productId: bigint, hit: YahooHit): Promise<boolean> {
+    const pointAmount = hit.point?.amount ?? 0;
+    const effectivePrice = Math.max(0, hit.price - pointAmount);
+    const shippingFee = hit.shipping?.code === 0 ? 0 : null;
+    const imageUrl = hit.image?.medium ?? hit.image?.small ?? null;
+    const now = new Date();
+
+    const offer = await prisma.productOffer.upsert({
+        where: { shopType_externalItemId: { shopType: 'yahoo', externalItemId: hit.code } },
+        update: {
+            productId,
+            title: hit.name,
+            price: hit.price,
+            shippingFee,
+            pointAmount,
+            effectivePrice,
+            externalUrl: hit.url,
+            imageUrl,
+            sellerName: hit.seller?.name ?? null,
+            isActive: true,
+            lastFetchedAt: now,
+        },
+        create: {
+            productId,
+            shopType: 'yahoo',
+            externalItemId: hit.code,
+            title: hit.name,
+            price: hit.price,
+            shippingFee,
+            pointAmount,
+            effectivePrice,
+            externalUrl: hit.url,
+            imageUrl,
+            sellerName: hit.seller?.name ?? null,
+            isActive: true,
+            lastFetchedAt: now,
+        },
+        select: { id: true, _count: { select: { priceHistories: true } } },
+    });
+
+    if (offer._count.priceHistories === 0) {
+        await prisma.priceHistory.create({
+            data: {
+                productOfferId: offer.id,
+                price: hit.price,
+                shippingFee,
+                pointAmount,
+                effectivePrice,
+                fetchedAt: now,
+            },
+        });
+    }
+    return true;
+}
+
 const PET_RE = /犬|猫|ペット|dog|cat|pet|ドッグ|キャット/i;
 function isPetRelated(name: string): boolean {
     return PET_RE.test(name);
@@ -250,6 +322,40 @@ async function main() {
     const index = await buildProductIndex();
     let totalOffers = 0, totalErrors = 0;
 
+    // ---- フェーズ1: JANコード検索 ----
+    const janCodes = [...index.janMap.keys()];
+    console.log(`\n[フェーズ1] JANコード検索: ${janCodes.length}件`);
+    let janOffers = 0, janErrors = 0;
+
+    for (const janCode of janCodes) {
+        await sleep(API_INTERVAL_MS);
+        let hits: YahooHit[];
+        try {
+            hits = await fetchYahooByJan(janCode);
+        } catch (e) {
+            console.error(`  [API error] JAN=${janCode}:`, (e as Error).message);
+            janErrors++;
+            continue;
+        }
+
+        const productId = index.janMap.get(janCode)!;
+        for (const hit of hits) {
+            if (!hit.inStock || !hit.code || !hit.name) continue;
+            try {
+                await upsertOffer(productId, hit);
+                janOffers++;
+            } catch (e) {
+                console.error(`  [error] ${hit.code}: ${(e as Error).message}`);
+                janErrors++;
+            }
+        }
+    }
+    console.log(`  → オファー追加: ${janOffers}件 / エラー: ${janErrors}件`);
+    totalOffers += janOffers;
+    totalErrors += janErrors;
+
+    // ---- フェーズ2: キーワード検索 ----
+    console.log(`\n[フェーズ2] キーワード検索`);
     for (const sq of SEARCH_QUERIES) {
         const categoryId = categoryMap.get(sq.categoryCode);
         if (!categoryId) {
@@ -282,10 +388,6 @@ async function main() {
                 if (!isPetRelated(hit.name)) continue;
 
                 const janCode = isValidJanCode(hit.janCode) ? hit.janCode : null;
-                const imageUrl = hit.image?.medium ?? hit.image?.small ?? null;
-                const pointAmount = hit.point?.amount ?? 0;
-                const effectivePrice = Math.max(0, hit.price - pointAmount);
-                const shippingFee = hit.shipping?.code === 0 ? 0 : null;
 
                 try {
                     const productId = findExistingProduct({
@@ -297,51 +399,7 @@ async function main() {
                     });
                     if (!productId) continue;
 
-                    const now = new Date();
-                    const offer = await prisma.productOffer.upsert({
-                        where: { shopType_externalItemId: { shopType: 'yahoo', externalItemId: hit.code } },
-                        update: {
-                            productId,
-                            title: hit.name,
-                            price: hit.price,
-                            shippingFee,
-                            pointAmount,
-                            effectivePrice,
-                            externalUrl: hit.url,
-                            imageUrl,
-                            sellerName: hit.seller?.name ?? null,
-                            isActive: true,
-                            lastFetchedAt: now,
-                        },
-                        create: {
-                            productId,
-                            shopType: 'yahoo',
-                            externalItemId: hit.code,
-                            title: hit.name,
-                            price: hit.price,
-                            shippingFee,
-                            pointAmount,
-                            effectivePrice,
-                            externalUrl: hit.url,
-                            imageUrl,
-                            sellerName: hit.seller?.name ?? null,
-                            isActive: true,
-                            lastFetchedAt: now,
-                        },
-                        select: { id: true, _count: { select: { priceHistories: true } } },
-                    });
-                    if (offer._count.priceHistories === 0) {
-                        await prisma.priceHistory.create({
-                            data: {
-                                productOfferId: offer.id,
-                                price: hit.price,
-                                shippingFee,
-                                pointAmount,
-                                effectivePrice,
-                                fetchedAt: now,
-                            },
-                        });
-                    }
+                    await upsertOffer(productId, hit);
                     queryOffers++;
                 } catch (e) {
                     console.error(`  [error] ${hit.code}: ${(e as Error).message}`);
