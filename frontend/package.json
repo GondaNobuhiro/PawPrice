@@ -15,7 +15,9 @@
     "update:prices": "tsx prisma/update-prices.ts",
     "import:rakuten-genres": "tsx prisma/import-rakuten-genres.ts",
     "classify:categories": "tsx prisma/classify-categories.ts",
-    "classify:categories:dry": "tsx prisma/classify-categories.ts --dry-run"
+    "classify:categories:dry": "tsx prisma/classify-categories.ts --dry-run",
+    "discover:yahoo-products": "tsx prisma/discover-yahoo-products.ts",
+    "update:yahoo-prices": "tsx prisma/update-yahoo-prices.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",

@@ -3,12 +3,20 @@ name: PawPrice Scheduled Jobs
 on:
   workflow_dispatch:
   schedule:
+    # 楽天: UTC 23:00 / 05:00 / 12:00（JST 08:00 / 14:00 / 21:00）
     - cron: '0 23 * * *'
     - cron: '0 5 * * *'
     - cron: '0 12 * * *'
+    # Yahoo: UTC 02:00 / 08:00 / 15:00（JST 11:00 / 17:00 / 00:00）
+    - cron: '0 2 * * *'
+    - cron: '0 8 * * *'
+    - cron: '0 15 * * *'
 
 jobs:
-  fetch-check-send:
+  rakuten-fetch-check-send:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      contains(fromJSON('["0 23 * * *","0 5 * * *","0 12 * * *"]'), github.event.schedule)
     runs-on: ubuntu-latest
 
     defaults:
@@ -49,3 +57,39 @@ jobs:
 
       - name: Send notifications
         run: npm run send:notifications
+
+  yahoo-update:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      contains(fromJSON('["0 2 * * *","0 8 * * *","0 15 * * *"]'), github.event.schedule)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      YAHOO_APP_ID: ${{ secrets.YAHOO_APP_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Discover Yahoo products (once daily at UTC 02:00)
+        if: github.event.schedule == '0 2 * * *' || github.event_name == 'workflow_dispatch'
+        run: npm run discover:yahoo-products
+
+      - name: Update Yahoo prices
+        run: npm run update:yahoo-prices
