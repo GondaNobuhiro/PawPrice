@@ -30,13 +30,31 @@ function pageNumbers(current: number, total: number): (number | '...')[] {
     if (total <= 7) {
         return Array.from({ length: total }, (_, i) => i + 1);
     }
-    const pages: (number | '...')[] = [1];
-    if (current > 3) pages.push('...');
-    for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) {
+
+    // 5ページのウィンドウを現在ページ中心に配置
+    let start = Math.max(1, current - 2);
+    let end = Math.min(total, current + 2);
+
+    // 端に寄ったときも必ず5ページ表示する
+    if (end - start < 4) {
+        if (start === 1) end = Math.min(total, 5);
+        else start = Math.max(1, total - 4);
+    }
+
+    const pages: (number | '...')[] = [];
+
+    if (start > 1) {
+        pages.push(1);
+        if (start > 2) pages.push('...');
+    }
+    for (let p = start; p <= end; p++) {
         pages.push(p);
     }
-    if (current < total - 2) pages.push('...');
-    pages.push(total);
+    if (end < total) {
+        if (end < total - 1) pages.push('...');
+        pages.push(total);
+    }
+
     return pages;
 }
 
