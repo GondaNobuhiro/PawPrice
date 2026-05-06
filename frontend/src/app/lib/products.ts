@@ -237,6 +237,18 @@ async function fetchProducts(params: {
         ? orderedIds.map((id) => products.find((p) => p.id === id)!).filter(Boolean)
         : products;
 
+    const productIds = sortedProducts.map((p) => p.id);
+    const historicalMins = productIds.length > 0
+        ? await prisma.$queryRaw<{ product_id: bigint; min_price: number }[]>`
+            SELECT po.product_id, MIN(ph.effective_price) AS min_price
+            FROM product_offers po
+            JOIN price_histories ph ON ph.product_offer_id = po.id
+            WHERE po.product_id = ANY(${productIds}::bigint[])
+            GROUP BY po.product_id
+          `
+        : [];
+    const historicalMinMap = new Map(historicalMins.map((r) => [r.product_id.toString(), r.min_price]));
+
     const items: ProductItem[] = sortedProducts.map((product) => {
         const rawOffer = product.offers[0];
         const lowestOffer = rawOffer
@@ -272,7 +284,7 @@ async function fetchProducts(params: {
             priceSummary: {
                 isPriceDown,
                 latestEffectivePrice: lowestOffer?.effectivePrice ?? null,
-                historicalMinPrice: lowestOffer?.effectivePrice ?? null,
+                historicalMinPrice: historicalMinMap.get(product.id.toString()) ?? lowestOffer?.effectivePrice ?? null,
                 previousEffectivePrice: null,
                 diffAmount: null,
                 diffPercent: null,
