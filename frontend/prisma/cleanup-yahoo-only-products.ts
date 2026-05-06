@@ -13,33 +13,57 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-    console.log('=== Yahoo限定商品の非アクティブ化 ===\n');
+    console.log('=== Yahoo限定商品のクリーンアップ ===\n');
 
-    // 楽天のアクティブオファーを持たず、Yahooのアクティブオファーを持つ商品を非アクティブ化
-    // オファー・価格履歴は保持する
-    const result = await prisma.$executeRaw`
-        UPDATE products SET is_active = false
-        WHERE is_active = true
-        AND NOT EXISTS (
-            SELECT 1 FROM product_offers o
-            WHERE o.product_id = products.id AND o.shop_type = 'rakuten' AND o.is_active = true
-        )
-        AND EXISTS (
-            SELECT 1 FROM product_offers o
-            WHERE o.product_id = products.id AND o.shop_type = 'yahoo' AND o.is_active = true
+    // 非アクティブ商品のYahooオファーに紐づく価格履歴を削除
+    const histDeleted = await prisma.$executeRaw`
+        DELETE FROM price_histories
+        WHERE product_offer_id IN (
+            SELECT o.id FROM product_offers o
+            JOIN products p ON p.id = o.product_id
+            WHERE o.shop_type = 'yahoo' AND p.is_active = false
         )
     `;
-    console.log(`Yahoo限定商品を非アクティブ化: ${result}件`);
+    console.log(`価格履歴削除: ${histDeleted}件`);
 
-    // オファーが1件もない孤立商品も非アクティブ化
-    const orphans = await prisma.$executeRaw`
-        UPDATE products SET is_active = false
-        WHERE is_active = true
-        AND NOT EXISTS (
-            SELECT 1 FROM product_offers o WHERE o.product_id = products.id
+    // 非アクティブ商品のYahooオファーを削除
+    const offerDeleted = await prisma.$executeRaw`
+        DELETE FROM product_offers
+        WHERE shop_type = 'yahoo'
+        AND product_id IN (SELECT id FROM products WHERE is_active = false)
+    `;
+    console.log(`Yahooオファー削除: ${offerDeleted}件`);
+
+    // 非アクティブ商品の残存オファー（楽天の非アクティブ分等）の価格履歴も削除
+    const histDeleted2 = await prisma.$executeRaw`
+        DELETE FROM price_histories
+        WHERE product_offer_id IN (
+            SELECT o.id FROM product_offers o
+            JOIN products p ON p.id = o.product_id
+            WHERE p.is_active = false
         )
     `;
-    console.log(`孤立商品を非アクティブ化: ${orphans}件`);
+    console.log(`残存価格履歴削除: ${histDeleted2}件`);
+
+    // 非アクティブ商品の残存オファーを全て削除
+    const offerDeleted2 = await prisma.$executeRaw`
+        DELETE FROM product_offers
+        WHERE product_id IN (SELECT id FROM products WHERE is_active = false)
+    `;
+    console.log(`残存オファー削除: ${offerDeleted2}件`);
+
+    // 非アクティブ商品のウォッチリストを削除
+    const watchDeleted = await prisma.$executeRaw`
+        DELETE FROM watchlists
+        WHERE product_id IN (SELECT id FROM products WHERE is_active = false)
+    `;
+    console.log(`ウォッチリスト削除: ${watchDeleted}件`);
+
+    // 非アクティブ商品を削除
+    const productDeleted = await prisma.$executeRaw`
+        DELETE FROM products WHERE is_active = false
+    `;
+    console.log(`商品削除: ${productDeleted}件`);
 
     console.log('\n=== 完了 ===');
     await prisma.$disconnect();
