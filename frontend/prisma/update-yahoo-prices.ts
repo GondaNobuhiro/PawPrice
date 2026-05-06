@@ -72,9 +72,13 @@ async function main() {
     console.log('=== Yahoo!ショッピング 価格更新 ===\n');
     const now = new Date();
 
-    // アクティブなYahooオファーを全取得
+    // アクティブな楽天オファーを持つ商品のYahooオファーのみ対象
     const offers = await prisma.productOffer.findMany({
-        where: { shopType: 'yahoo', isActive: true },
+        where: {
+            shopType: 'yahoo',
+            isActive: true,
+            product: { offers: { some: { shopType: 'rakuten', isActive: true } } },
+        },
         select: {
             id: true,
             externalItemId: true,
