@@ -67,7 +67,11 @@ async function fetchCategories(): Promise<Category[]> {
 
     const products = await prisma.product.groupBy({
         by: ['categoryId'],
-        where: { isActive: true, categoryId: { in: categoryIdsToCheck } },
+        where: {
+            isActive: true,
+            categoryId: { in: categoryIdsToCheck },
+            offers: { some: { isActive: true } },
+        },
         _count: { _all: true },
     });
 
