@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import NotificationCard from '@/src/components/notification-card';
 import ClearNotificationsButton from '@/src/components/clear-notifications-button';
 import { getNotifications } from '@/src/app/lib/notifications';
@@ -27,8 +28,18 @@ export default async function NotificationsPage() {
                 </div>
 
                 {notifications.length === 0 ? (
-                    <div className="rounded-3xl border border-sky-100 bg-white px-6 py-16 text-center shadow-sm">
-                        <div className="mb-4 text-5xl">🔔</div>
+                    <div className="rounded-3xl border border-sky-100 bg-white p-10 text-center shadow-sm">
+                        <div className="mb-6 flex justify-center">
+                            <div className="relative h-44 w-64 overflow-hidden rounded-2xl shadow-sm">
+                                <Image
+                                    src="/image/dog-no-notification.jpeg"
+                                    alt="ポメラニアン"
+                                    fill
+                                    className="object-cover"
+                                    style={{ objectPosition: '50% 20%' }}
+                                />
+                            </div>
+                        </div>
                         <p className="font-semibold text-gray-700">通知はありません</p>
                         <p className="mt-1 text-sm text-gray-400">
                             ウォッチ中の商品が値下がりしたときにお知らせします
