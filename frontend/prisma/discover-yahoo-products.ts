@@ -166,53 +166,44 @@ function isValidJanCode(code: string | null | undefined): code is string {
     return /^\d{8}$/.test(code) || /^\d{13}$/.test(code);
 }
 
-async function findOrCreateProduct(params: {
-    categoryId: bigint;
+type ProductIndex = {
+    janMap: Map<string, bigint>;
+    nameMap: Map<string, bigint>;
+};
+
+async function buildProductIndex(): Promise<ProductIndex> {
+    const products = await prisma.product.findMany({
+        where: { isActive: true },
+        select: { id: true, janCode: true, normalizedName: true, packageSize: true, petType: true },
+    });
+    const janMap = new Map<string, bigint>();
+    const nameMap = new Map<string, bigint>();
+    for (const p of products) {
+        if (p.janCode) janMap.set(p.janCode, p.id);
+        if (p.normalizedName) {
+            const key = `${p.petType}|${p.normalizedName}|${p.packageSize ?? ''}`;
+            nameMap.set(key, p.id);
+        }
+    }
+    console.log(`商品インデックス: ${products.length}件ロード（JAN: ${janMap.size}件）`);
+    return { janMap, nameMap };
+}
+
+function findExistingProduct(params: {
     itemName: string;
     petType: string;
-    imageUrl: string | null;
     janCode: string | null;
     brandRules: BrandRule[];
-}): Promise<{ id: bigint; created: boolean }> {
+    index: ProductIndex;
+}): bigint | null {
+    if (params.janCode) {
+        const id = params.index.janMap.get(params.janCode);
+        if (id !== undefined) return id;
+    }
     const normalizedName = normalizeProductName(params.itemName);
     const packageSize = extractPackageSize(params.itemName);
-    const brandId = resolveBrandId(params.itemName, params.brandRules);
-
-    if (params.janCode) {
-        const match = await prisma.product.findFirst({
-            where: { janCode: params.janCode },
-            select: { id: true },
-        });
-        if (match) return { id: match.id, created: false };
-    }
-
-    const nameMatch = await prisma.product.findFirst({
-        where: {
-            petType: params.petType,
-            normalizedName,
-            packageSize: packageSize ?? null,
-            isActive: true,
-            ...(brandId ? { brandId } : {}),
-        },
-        select: { id: true },
-    });
-    if (nameMatch) return { id: nameMatch.id, created: false };
-
-    const created = await prisma.product.create({
-        data: {
-            category: { connect: { id: params.categoryId } },
-            ...(brandId ? { brand: { connect: { id: brandId } } } : {}),
-            name: params.itemName,
-            normalizedName,
-            janCode: params.janCode,
-            petType: params.petType,
-            packageSize,
-            imageUrl: params.imageUrl,
-            isActive: true,
-        },
-        select: { id: true },
-    });
-    return { id: created.id, created: true };
+    const key = `${params.petType}|${normalizedName}|${packageSize ?? ''}`;
+    return params.index.nameMap.get(key) ?? null;
 }
 
 // ---- Yahoo! API ----
@@ -256,7 +247,8 @@ async function main() {
         .sort((a, b) => a.priority - b.priority || b.keyword.length - a.keyword.length)
         .map(r => ({ keyword: r.keyword.normalize('NFKC').toLowerCase(), brandId: r.brand.id, priority: r.priority }));
 
-    let totalNew = 0, totalOffers = 0, totalErrors = 0;
+    const index = await buildProductIndex();
+    let totalOffers = 0, totalErrors = 0;
 
     for (const sq of SEARCH_QUERIES) {
         const categoryId = categoryMap.get(sq.categoryCode);
@@ -269,7 +261,7 @@ async function main() {
         console.log(`\n[クエリ] "${sq.query}" (${sq.petType}/${sq.categoryCode}) 最大${maxPages}ページ`);
 
         let start = 1;
-        let queryNew = 0, queryOffers = 0;
+        let queryOffers = 0;
 
         while (start <= maxPages * RESULTS_PER_PAGE) {
             await sleep(API_INTERVAL_MS);
@@ -296,17 +288,17 @@ async function main() {
                 const shippingFee = hit.shipping?.code === 0 ? 0 : null;
 
                 try {
-                    const { id: productId, created } = await findOrCreateProduct({
-                        categoryId,
+                    const productId = findExistingProduct({
                         itemName: hit.name,
                         petType: sq.petType,
-                        imageUrl,
                         janCode,
                         brandRules,
+                        index,
                     });
-                    if (created) queryNew++;
+                    if (!productId) continue;
 
-                    await prisma.productOffer.upsert({
+                    const now = new Date();
+                    const offer = await prisma.productOffer.upsert({
                         where: { shopType_externalItemId: { shopType: 'yahoo', externalItemId: hit.code } },
                         update: {
                             productId,
@@ -319,7 +311,7 @@ async function main() {
                             imageUrl,
                             sellerName: hit.seller?.name ?? null,
                             isActive: true,
-                            lastFetchedAt: new Date(),
+                            lastFetchedAt: now,
                         },
                         create: {
                             productId,
@@ -334,9 +326,22 @@ async function main() {
                             imageUrl,
                             sellerName: hit.seller?.name ?? null,
                             isActive: true,
-                            lastFetchedAt: new Date(),
+                            lastFetchedAt: now,
                         },
+                        select: { id: true, _count: { select: { priceHistories: true } } },
                     });
+                    if (offer._count.priceHistories === 0) {
+                        await prisma.priceHistory.create({
+                            data: {
+                                productOfferId: offer.id,
+                                price: hit.price,
+                                shippingFee,
+                                pointAmount,
+                                effectivePrice,
+                                fetchedAt: now,
+                            },
+                        });
+                    }
                     queryOffers++;
                 } catch (e) {
                     console.error(`  [error] ${hit.code}: ${(e as Error).message}`);
@@ -350,9 +355,8 @@ async function main() {
             if (start > total) break;
         }
 
-        totalNew += queryNew;
         totalOffers += queryOffers;
-        console.log(`  → 新商品: ${queryNew}件 オファー: ${queryOffers}件`);
+        console.log(`  → オファー追加: ${queryOffers}件`);
     }
 
     // 30日以上未更新のYahooオファーを非アクティブ化
@@ -363,7 +367,7 @@ async function main() {
     });
 
     console.log(`\n=== 完了 ===`);
-    console.log(`新商品: ${totalNew}件 / オファー処理: ${totalOffers}件 / エラー: ${totalErrors}件`);
+    console.log(`オファー追加: ${totalOffers}件 / エラー: ${totalErrors}件`);
     console.log(`非アクティブ化: ${deactivated.count}件`);
 
     await prisma.$disconnect();
