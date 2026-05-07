@@ -17,7 +17,8 @@
     "classify:categories": "tsx prisma/classify-categories.ts",
     "classify:categories:dry": "tsx prisma/classify-categories.ts --dry-run",
     "discover:yahoo-products": "tsx prisma/discover-yahoo-products.ts",
-    "update:yahoo-prices": "tsx prisma/update-yahoo-prices.ts"
+    "update:yahoo-prices": "tsx prisma/update-yahoo-prices.ts",
+    "backfill:jan-from-url": "tsx prisma/backfill-jan-from-url.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
