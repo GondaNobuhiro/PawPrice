@@ -132,12 +132,27 @@ function extractPackageSize(name: string): string | null {
     return null;
 }
 
+function isEan13ChecksumValid(code: string): boolean {
+    const digits = code.split('').map(Number);
+    const sum = digits.slice(0, 12).reduce((acc, d, i) => acc + d * (i % 2 === 0 ? 1 : 3), 0);
+    return (10 - (sum % 10)) % 10 === digits[12];
+}
+
 function extractJanCode(text: string): string | null {
     const n = text.normalize('NFKC');
     const m13 = n.match(/(?<!\d)\d{13}(?!\d)/g);
     if (m13) return m13[0];
     const m8 = n.match(/(?<!\d)\d{8}(?!\d)/g);
     if (m8) return m8[0];
+    return null;
+}
+
+function extractJanFromUrl(url: string): string | null {
+    const m = url.match(/(?<!\d)\d{13}(?!\d)/g);
+    if (!m) return null;
+    for (const candidate of m) {
+        if (isEan13ChecksumValid(candidate)) return candidate;
+    }
     return null;
 }
 
@@ -210,6 +225,7 @@ async function findOrCreateProduct(params: {
     categoryId: bigint;
     itemName: string;
     itemCaption?: string | null;
+    itemUrl?: string | null;
     petType: string;
     imageUrl: string | null;
     brandRules: BrandRule[];
@@ -218,7 +234,7 @@ async function findOrCreateProduct(params: {
     const normalizedName = normalizeProductName(params.itemName);
     const packageSize = extractPackageSize(params.itemName);
     const brandId = resolveBrandId(params.itemName, params.brandRules);
-    const janCode = extractJanCode(sourceText);
+    const janCode = extractJanCode(sourceText) ?? extractJanFromUrl(params.itemUrl ?? '');
     const modelNumber = extractModelNumber(sourceText);
 
     if (janCode) {
@@ -443,6 +459,7 @@ async function main() {
                     categoryId: category.id,
                     itemName: item.itemName,
                     itemCaption: item.itemCaption,
+                    itemUrl: item.itemUrl,
                     petType,
                     imageUrl,
                     brandRules,
