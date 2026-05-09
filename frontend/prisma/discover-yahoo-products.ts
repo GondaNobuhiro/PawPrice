@@ -18,9 +18,8 @@ const prisma = new PrismaClient({
 const API_BASE = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch';
 const RESULTS_PER_PAGE = 100;      // キーワード検索のページあたり件数
 const RESULTS_PER_JAN = 3;         // JAN検索のヒット上限（安い順で上位3件のみ保持）
-const API_INTERVAL_MS = 1100;
+const API_INTERVAL_MS = 2100;      // 30リクエスト/分制限に準拠（60s÷30=2s、安全マージン込み）
 const DEACTIVATE_AFTER_DAYS = 30;
-const SKIP_JAN_UPDATED_HOURS = 12; // 直近N時間以内に更新済みのJANはスキップ
 
 // ---- 型定義 ----
 type YahooHit = {
@@ -169,8 +168,8 @@ function isValidJanCode(code: string | null | undefined): code is string {
 }
 
 type ProductIndex = {
-    janMap: Map<string, bigint>;
-    janUpdatedAt: Map<string, Date>;  // JAN → 最終Yahoo更新日時
+    janMap: Map<string, bigint>;      // Yahooオファー未登録のJAN → productId
+    janMapAll: Map<string, bigint>;   // 全JANコード → productId（フェーズ2用）
     nameMap: Map<string, bigint>;
 };
 
@@ -179,35 +178,32 @@ async function buildProductIndex(): Promise<ProductIndex> {
         where: { isActive: true },
         select: { id: true, janCode: true, normalizedName: true, packageSize: true, petType: true },
     });
+
+    // アクティブなYahooオファーを持つ商品IDのセット
+    type IdRow = { product_id: bigint };
+    const yahooRows = await prisma.$queryRaw<IdRow[]>`
+        SELECT DISTINCT product_id
+        FROM product_offers
+        WHERE shop_type = 'yahoo' AND is_active = true
+    `;
+    const hasYahoo = new Set(yahooRows.map(r => r.product_id));
+
     const janMap = new Map<string, bigint>();
+    const janMapAll = new Map<string, bigint>();
     const nameMap = new Map<string, bigint>();
     for (const p of products) {
-        if (p.janCode) janMap.set(p.janCode, p.id);
+        if (p.janCode) {
+            janMapAll.set(p.janCode, p.id);
+            if (!hasYahoo.has(p.id)) janMap.set(p.janCode, p.id); // 未登録のみ
+        }
         if (p.normalizedName) {
             const key = `${p.petType}|${p.normalizedName}|${p.packageSize ?? ''}`;
             nameMap.set(key, p.id);
         }
     }
 
-    // JAN商品のYahoo最終更新日時を別クエリで取得
-    type Row = { product_id: bigint; last_fetched: Date };
-    const rows = await prisma.$queryRaw<Row[]>`
-        SELECT po.product_id, MAX(po.last_fetched_at) AS last_fetched
-        FROM product_offers po
-        JOIN products p ON p.id = po.product_id
-        WHERE po.shop_type = 'yahoo' AND p.jan_code IS NOT NULL
-        GROUP BY po.product_id
-    `;
-    const productIdToJan = new Map<bigint, string>();
-    for (const [jan, id] of janMap) productIdToJan.set(id, jan);
-    const janUpdatedAt = new Map<string, Date>();
-    for (const row of rows) {
-        const jan = productIdToJan.get(row.product_id);
-        if (jan) janUpdatedAt.set(jan, row.last_fetched);
-    }
-
-    console.log(`商品インデックス: ${products.length}件ロード（JAN: ${janMap.size}件、Yahoo更新済み: ${janUpdatedAt.size}件）`);
-    return { janMap, janUpdatedAt, nameMap };
+    console.log(`商品インデックス: ${products.length}件ロード（JAN総数: ${janMapAll.size}件、Yahoo未登録: ${janMap.size}件）`);
+    return { janMap, janMapAll, nameMap };
 }
 
 function findExistingProduct(params: {
@@ -218,7 +214,7 @@ function findExistingProduct(params: {
     index: ProductIndex;
 }): bigint | null {
     if (params.janCode) {
-        const id = params.index.janMap.get(params.janCode);
+        const id = params.index.janMapAll.get(params.janCode);
         if (id !== undefined) return id;
     }
     const normalizedName = normalizeProductName(params.itemName);
@@ -344,23 +340,12 @@ async function main() {
     const index = await buildProductIndex();
     let totalOffers = 0, totalErrors = 0;
 
-    // ---- フェーズ1: JANコード検索 ----
+    // ---- フェーズ1: JANコード検索（Yahoo未登録商品のみ） ----
     const janCodes = [...index.janMap.keys()];
-    const skipCutoff = new Date(Date.now() - SKIP_JAN_UPDATED_HOURS * 3600 * 1000);
-    const skipCount = janCodes.filter(j => {
-        const t = index.janUpdatedAt.get(j);
-        return t && t > skipCutoff;
-    }).length;
-    console.log(`\n[フェーズ1] JANコード検索: ${janCodes.length}件（直近${SKIP_JAN_UPDATED_HOURS}h更新済みスキップ: ${skipCount}件）`);
-    let janOffers = 0, janErrors = 0, janSkipped = 0, janProcessed = 0;
+    console.log(`\n[フェーズ1] JANコード検索: ${janCodes.length}件（既登録はスキップ済み）`);
+    let janOffers = 0, janErrors = 0, janProcessed = 0;
 
     for (const janCode of janCodes) {
-        const lastUpdated = index.janUpdatedAt.get(janCode);
-        if (lastUpdated && lastUpdated > skipCutoff) {
-            janSkipped++;
-            continue;
-        }
-
         await sleep(API_INTERVAL_MS);
         let hits: YahooHit[];
         try {
@@ -385,11 +370,10 @@ async function main() {
 
         janProcessed++;
         if (janProcessed % 100 === 0) {
-            const total = janCodes.length - janSkipped;
-            console.log(`  進捗: ${janProcessed}/${total}件処理済み（オファー追加: ${janOffers}件）`);
+            console.log(`  進捗: ${janProcessed}/${janCodes.length}件処理済み（オファー追加: ${janOffers}件）`);
         }
     }
-    console.log(`  → 処理: ${janProcessed}件 / スキップ: ${janSkipped}件 / オファー追加: ${janOffers}件 / エラー: ${janErrors}件`);
+    console.log(`  → 処理: ${janProcessed}件 / オファー追加: ${janOffers}件 / エラー: ${janErrors}件`);
     totalOffers += janOffers;
     totalErrors += janErrors;
 
