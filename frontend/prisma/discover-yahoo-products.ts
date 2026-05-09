@@ -343,16 +343,27 @@ async function main() {
     // ---- フェーズ1: JANコード検索（Yahoo未登録商品のみ） ----
     const janCodes = [...index.janMap.keys()];
     console.log(`\n[フェーズ1] JANコード検索: ${janCodes.length}件（既登録はスキップ済み）`);
-    let janOffers = 0, janErrors = 0, janProcessed = 0;
+    let janOffers = 0, janErrors = 0, janProcessed = 0, consecutive429 = 0;
 
     for (const janCode of janCodes) {
         await sleep(API_INTERVAL_MS);
         let hits: YahooHit[];
         try {
             hits = await fetchYahooByJan(janCode);
+            consecutive429 = 0;
         } catch (e) {
-            console.error(`  [API error] JAN=${janCode}:`, (e as Error).message);
+            const msg = (e as Error).message;
+            console.error(`  [API error] JAN=${janCode}:`, msg);
             janErrors++;
+            if (msg.includes('429')) {
+                consecutive429++;
+                if (consecutive429 >= 3) {
+                    console.error(`  [中止] 429エラーが${consecutive429}回連続。日次クォータ超過。フェーズ1を終了します。`);
+                    break;
+                }
+            } else {
+                consecutive429 = 0;
+            }
             continue;
         }
 
@@ -379,7 +390,10 @@ async function main() {
 
     // ---- フェーズ2: キーワード検索 ----
     console.log(`\n[フェーズ2] キーワード検索`);
+    let phase2consecutive429 = 0;
+    let phase2Aborted = false;
     for (const sq of SEARCH_QUERIES) {
+        if (phase2Aborted) break;
         const categoryId = categoryMap.get(sq.categoryCode);
         if (!categoryId) {
             console.warn(`[skip] categoryCode="${sq.categoryCode}" not found`);
@@ -398,8 +412,19 @@ async function main() {
             let data: YahooSearchResponse;
             try {
                 data = await fetchYahooItems(sq.query, start);
+                phase2consecutive429 = 0;
             } catch (e) {
-                console.error(`  [API error] start=${start}:`, (e as Error).message);
+                const msg = (e as Error).message;
+                console.error(`  [API error] start=${start}:`, msg);
+                if (msg.includes('429')) {
+                    phase2consecutive429++;
+                    if (phase2consecutive429 >= 3) {
+                        console.error(`  [中止] 429エラーが${phase2consecutive429}回連続。日次クォータ超過。フェーズ2を終了します。`);
+                        phase2Aborted = true;
+                    }
+                } else {
+                    phase2consecutive429 = 0;
+                }
                 break;
             }
 
