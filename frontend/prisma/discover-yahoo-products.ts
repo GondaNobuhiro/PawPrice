@@ -16,9 +16,11 @@ const prisma = new PrismaClient({
 });
 
 const API_BASE = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch';
-const RESULTS_PER_PAGE = 100;
+const RESULTS_PER_PAGE = 100;      // キーワード検索のページあたり件数
+const RESULTS_PER_JAN = 20;        // JAN検索のヒット上限（DB書き込みを抑制）
 const API_INTERVAL_MS = 1100;
 const DEACTIVATE_AFTER_DAYS = 30;
+const SKIP_JAN_UPDATED_HOURS = 12; // 直近N時間以内に更新済みのJANはスキップ
 
 // ---- 型定義 ----
 type YahooHit = {
@@ -168,6 +170,7 @@ function isValidJanCode(code: string | null | undefined): code is string {
 
 type ProductIndex = {
     janMap: Map<string, bigint>;
+    janUpdatedAt: Map<string, Date>;  // JAN → 最終Yahoo更新日時
     nameMap: Map<string, bigint>;
 };
 
@@ -185,8 +188,26 @@ async function buildProductIndex(): Promise<ProductIndex> {
             nameMap.set(key, p.id);
         }
     }
-    console.log(`商品インデックス: ${products.length}件ロード（JAN: ${janMap.size}件）`);
-    return { janMap, nameMap };
+
+    // JAN商品のYahoo最終更新日時を別クエリで取得
+    type Row = { product_id: bigint; last_fetched: Date };
+    const rows = await prisma.$queryRaw<Row[]>`
+        SELECT po.product_id, MAX(po.last_fetched_at) AS last_fetched
+        FROM product_offers po
+        JOIN products p ON p.id = po.product_id
+        WHERE po.shop_type = 'yahoo' AND p.jan_code IS NOT NULL
+        GROUP BY po.product_id
+    `;
+    const productIdToJan = new Map<bigint, string>();
+    for (const [jan, id] of janMap) productIdToJan.set(id, jan);
+    const janUpdatedAt = new Map<string, Date>();
+    for (const row of rows) {
+        const jan = productIdToJan.get(row.product_id);
+        if (jan) janUpdatedAt.set(jan, row.last_fetched);
+    }
+
+    console.log(`商品インデックス: ${products.length}件ロード（JAN: ${janMap.size}件、Yahoo更新済み: ${janUpdatedAt.size}件）`);
+    return { janMap, janUpdatedAt, nameMap };
 }
 
 function findExistingProduct(params: {
@@ -228,7 +249,8 @@ async function fetchYahooByJan(janCode: string): Promise<YahooHit[]> {
     const url = new URL(API_BASE);
     url.searchParams.set('appid', appId!);
     url.searchParams.set('jan_code', janCode);
-    url.searchParams.set('results', String(RESULTS_PER_PAGE));
+    url.searchParams.set('results', String(RESULTS_PER_JAN));
+    url.searchParams.set('sort', '+price');  // 安い順で上位N件を取得
     url.searchParams.set('in_stock', 'true');
 
     const res = await fetch(url.toString());
@@ -324,10 +346,21 @@ async function main() {
 
     // ---- フェーズ1: JANコード検索 ----
     const janCodes = [...index.janMap.keys()];
-    console.log(`\n[フェーズ1] JANコード検索: ${janCodes.length}件`);
-    let janOffers = 0, janErrors = 0;
+    const skipCutoff = new Date(Date.now() - SKIP_JAN_UPDATED_HOURS * 3600 * 1000);
+    const skipCount = janCodes.filter(j => {
+        const t = index.janUpdatedAt.get(j);
+        return t && t > skipCutoff;
+    }).length;
+    console.log(`\n[フェーズ1] JANコード検索: ${janCodes.length}件（直近${SKIP_JAN_UPDATED_HOURS}h更新済みスキップ: ${skipCount}件）`);
+    let janOffers = 0, janErrors = 0, janSkipped = 0, janProcessed = 0;
 
     for (const janCode of janCodes) {
+        const lastUpdated = index.janUpdatedAt.get(janCode);
+        if (lastUpdated && lastUpdated > skipCutoff) {
+            janSkipped++;
+            continue;
+        }
+
         await sleep(API_INTERVAL_MS);
         let hits: YahooHit[];
         try {
@@ -349,8 +382,14 @@ async function main() {
                 janErrors++;
             }
         }
+
+        janProcessed++;
+        if (janProcessed % 100 === 0) {
+            const total = janCodes.length - janSkipped;
+            console.log(`  進捗: ${janProcessed}/${total}件処理済み（オファー追加: ${janOffers}件）`);
+        }
     }
-    console.log(`  → オファー追加: ${janOffers}件 / エラー: ${janErrors}件`);
+    console.log(`  → 処理: ${janProcessed}件 / スキップ: ${janSkipped}件 / オファー追加: ${janOffers}件 / エラー: ${janErrors}件`);
     totalOffers += janOffers;
     totalErrors += janErrors;
 
