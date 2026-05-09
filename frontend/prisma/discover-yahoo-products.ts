@@ -17,7 +17,7 @@ const prisma = new PrismaClient({
 
 const API_BASE = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch';
 const RESULTS_PER_PAGE = 100;      // キーワード検索のページあたり件数
-const RESULTS_PER_JAN = 20;        // JAN検索のヒット上限（DB書き込みを抑制）
+const RESULTS_PER_JAN = 3;         // JAN検索のヒット上限（安い順で上位3件のみ保持）
 const API_INTERVAL_MS = 1100;
 const DEACTIVATE_AFTER_DAYS = 30;
 const SKIP_JAN_UPDATED_HOURS = 12; // 直近N時間以内に更新済みのJANはスキップ
