@@ -18,8 +18,10 @@ const prisma = new PrismaClient({
 const API_BASE = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch';
 const RESULTS_PER_PAGE = 100;      // キーワード検索のページあたり件数
 const RESULTS_PER_JAN = 3;         // JAN検索のヒット上限（安い順で上位3件のみ保持）
-const API_INTERVAL_MS = 2100;      // 30リクエスト/分制限に準拠（60s÷30=2s、安全マージン込み）
+const API_INTERVAL_MS = 1100;      // 公式制限: 1クエリ/秒。余裕を持ち1.1秒間隔
 const DEACTIVATE_AFTER_DAYS = 30;
+// 429発生時のバックオフ待機時間（公式: 詳細非公開、自動解除まで待機）
+const BACKOFF_DELAYS_MS = [5 * 60_000, 15 * 60_000]; // 5分 → 15分
 
 // ---- 型定義 ----
 type YahooHit = {
@@ -224,6 +226,21 @@ function findExistingProduct(params: {
 }
 
 // ---- Yahoo! API ----
+async function fetchWithBackoff(urlStr: string, label: string): Promise<Response> {
+    for (let attempt = 0; ; attempt++) {
+        const res = await fetch(urlStr);
+        if (res.status !== 429) return res;
+
+        if (attempt >= BACKOFF_DELAYS_MS.length) {
+            const text = await res.text();
+            throw new Error(`Yahoo API 429: ${text.slice(0, 300)}`);
+        }
+        const waitMs = BACKOFF_DELAYS_MS[attempt];
+        console.warn(`  [429] ${label}: ${waitMs / 60000}分待機して再試行 (${attempt + 1}/${BACKOFF_DELAYS_MS.length})`);
+        await sleep(waitMs);
+    }
+}
+
 async function fetchYahooItems(query: string, start: number): Promise<YahooSearchResponse> {
     const url = new URL(API_BASE);
     url.searchParams.set('appid', appId!);
@@ -233,7 +250,7 @@ async function fetchYahooItems(query: string, start: number): Promise<YahooSearc
     url.searchParams.set('in_stock', 'true');
     url.searchParams.set('sort', '-score');
 
-    const res = await fetch(url.toString());
+    const res = await fetchWithBackoff(url.toString(), `query="${query}" start=${start}`);
     if (!res.ok) {
         const text = await res.text();
         throw new Error(`Yahoo API ${res.status}: ${text.slice(0, 300)}`);
@@ -246,10 +263,10 @@ async function fetchYahooByJan(janCode: string): Promise<YahooHit[]> {
     url.searchParams.set('appid', appId!);
     url.searchParams.set('jan_code', janCode);
     url.searchParams.set('results', String(RESULTS_PER_JAN));
-    url.searchParams.set('sort', '+price');  // 安い順で上位N件を取得
+    url.searchParams.set('sort', '+price');
     url.searchParams.set('in_stock', 'true');
 
-    const res = await fetch(url.toString());
+    const res = await fetchWithBackoff(url.toString(), `JAN=${janCode}`);
     if (!res.ok) {
         const text = await res.text();
         throw new Error(`Yahoo API ${res.status}: ${text.slice(0, 300)}`);
@@ -343,6 +360,7 @@ async function main() {
     // ---- フェーズ1: JANコード検索（Yahoo未登録商品のみ） ----
     const janCodes = [...index.janMap.keys()];
     console.log(`\n[フェーズ1] JANコード検索: ${janCodes.length}件（既登録はスキップ済み）`);
+    // consecutive429: バックオフ後も失敗が続く場合に終了するカウンタ
     let janOffers = 0, janErrors = 0, janProcessed = 0, consecutive429 = 0;
 
     for (const janCode of janCodes) {
