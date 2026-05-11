@@ -18,7 +18,7 @@ const prisma = new PrismaClient({
 const API_BASE = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch';
 const RESULTS_PER_PAGE = 100;      // キーワード検索のページあたり件数
 const RESULTS_PER_JAN = 3;         // JAN検索のヒット上限（安い順で上位3件のみ保持）
-const API_INTERVAL_MS = 1100;      // 公式制限: 1クエリ/秒。余裕を持ち1.1秒間隔
+const API_INTERVAL_MS = 2100;      // 公式制限: 30リクエスト/分（2022-05-20変更）。60s÷30=2s、安全マージン込み2.1s
 const DEACTIVATE_AFTER_DAYS = 30;
 // 429発生時のバックオフ待機時間（公式: 詳細非公開、自動解除まで待機）
 const BACKOFF_DELAYS_MS = [5 * 60_000, 15 * 60_000]; // 5分 → 15分

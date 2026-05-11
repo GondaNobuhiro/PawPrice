@@ -17,7 +17,7 @@ const prisma = new PrismaClient({
 
 const API_BASE = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch';
 const RESULTS_PER_PAGE = 100;
-const API_INTERVAL_MS = 1100;
+const API_INTERVAL_MS = 2100;      // 公式制限: 30リクエスト/分（2022-05-20変更）。60s÷30=2s、安全マージン込み2.1s
 const DEACTIVATE_AFTER_DAYS = 30;
 
 type YahooHit = {
