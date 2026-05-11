@@ -16,9 +16,12 @@ const prisma = new PrismaClient({
 });
 
 const API_BASE = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch';
-const RESULTS_PER_PAGE = 100;
-const API_INTERVAL_MS = 1100;
+const RESULTS_PER_PAGE = 100;      // キーワード検索のページあたり件数
+const RESULTS_PER_JAN = 3;         // JAN検索のヒット上限（安い順で上位3件のみ保持）
+const API_INTERVAL_MS = 2100;      // 公式制限: 30リクエスト/分（2022-05-20変更）。60s÷30=2s、安全マージン込み2.1s
 const DEACTIVATE_AFTER_DAYS = 30;
+// 429発生時のバックオフ待機時間（公式: 詳細非公開、自動解除まで待機）
+const BACKOFF_DELAYS_MS = [5 * 60_000, 15 * 60_000]; // 5分 → 15分
 
 // ---- 型定義 ----
 type YahooHit = {
@@ -167,7 +170,8 @@ function isValidJanCode(code: string | null | undefined): code is string {
 }
 
 type ProductIndex = {
-    janMap: Map<string, bigint>;
+    janMap: Map<string, bigint>;      // Yahooオファー未登録のJAN → productId
+    janMapAll: Map<string, bigint>;   // 全JANコード → productId（フェーズ2用）
     nameMap: Map<string, bigint>;
 };
 
@@ -176,17 +180,32 @@ async function buildProductIndex(): Promise<ProductIndex> {
         where: { isActive: true },
         select: { id: true, janCode: true, normalizedName: true, packageSize: true, petType: true },
     });
+
+    // アクティブなYahooオファーを持つ商品IDのセット
+    type IdRow = { product_id: bigint };
+    const yahooRows = await prisma.$queryRaw<IdRow[]>`
+        SELECT DISTINCT product_id
+        FROM product_offers
+        WHERE shop_type = 'yahoo' AND is_active = true
+    `;
+    const hasYahoo = new Set(yahooRows.map(r => r.product_id));
+
     const janMap = new Map<string, bigint>();
+    const janMapAll = new Map<string, bigint>();
     const nameMap = new Map<string, bigint>();
     for (const p of products) {
-        if (p.janCode) janMap.set(p.janCode, p.id);
+        if (p.janCode) {
+            janMapAll.set(p.janCode, p.id);
+            if (!hasYahoo.has(p.id)) janMap.set(p.janCode, p.id); // 未登録のみ
+        }
         if (p.normalizedName) {
             const key = `${p.petType}|${p.normalizedName}|${p.packageSize ?? ''}`;
             nameMap.set(key, p.id);
         }
     }
-    console.log(`商品インデックス: ${products.length}件ロード（JAN: ${janMap.size}件）`);
-    return { janMap, nameMap };
+
+    console.log(`商品インデックス: ${products.length}件ロード（JAN総数: ${janMapAll.size}件、Yahoo未登録: ${janMap.size}件）`);
+    return { janMap, janMapAll, nameMap };
 }
 
 function findExistingProduct(params: {
@@ -197,7 +216,7 @@ function findExistingProduct(params: {
     index: ProductIndex;
 }): bigint | null {
     if (params.janCode) {
-        const id = params.index.janMap.get(params.janCode);
+        const id = params.index.janMapAll.get(params.janCode);
         if (id !== undefined) return id;
     }
     const normalizedName = normalizeProductName(params.itemName);
@@ -207,6 +226,21 @@ function findExistingProduct(params: {
 }
 
 // ---- Yahoo! API ----
+async function fetchWithBackoff(urlStr: string, label: string): Promise<Response> {
+    for (let attempt = 0; ; attempt++) {
+        const res = await fetch(urlStr);
+        if (res.status !== 429) return res;
+
+        if (attempt >= BACKOFF_DELAYS_MS.length) {
+            const text = await res.text();
+            throw new Error(`Yahoo API 429: ${text.slice(0, 300)}`);
+        }
+        const waitMs = BACKOFF_DELAYS_MS[attempt];
+        console.warn(`  [429] ${label}: ${waitMs / 60000}分待機して再試行 (${attempt + 1}/${BACKOFF_DELAYS_MS.length})`);
+        await sleep(waitMs);
+    }
+}
+
 async function fetchYahooItems(query: string, start: number): Promise<YahooSearchResponse> {
     const url = new URL(API_BASE);
     url.searchParams.set('appid', appId!);
@@ -216,7 +250,7 @@ async function fetchYahooItems(query: string, start: number): Promise<YahooSearc
     url.searchParams.set('in_stock', 'true');
     url.searchParams.set('sort', '-score');
 
-    const res = await fetch(url.toString());
+    const res = await fetchWithBackoff(url.toString(), `query="${query}" start=${start}`);
     if (!res.ok) {
         const text = await res.text();
         throw new Error(`Yahoo API ${res.status}: ${text.slice(0, 300)}`);
@@ -228,10 +262,11 @@ async function fetchYahooByJan(janCode: string): Promise<YahooHit[]> {
     const url = new URL(API_BASE);
     url.searchParams.set('appid', appId!);
     url.searchParams.set('jan_code', janCode);
-    url.searchParams.set('results', String(RESULTS_PER_PAGE));
+    url.searchParams.set('results', String(RESULTS_PER_JAN));
+    url.searchParams.set('sort', '+price');
     url.searchParams.set('in_stock', 'true');
 
-    const res = await fetch(url.toString());
+    const res = await fetchWithBackoff(url.toString(), `JAN=${janCode}`);
     if (!res.ok) {
         const text = await res.text();
         throw new Error(`Yahoo API ${res.status}: ${text.slice(0, 300)}`);
@@ -322,19 +357,31 @@ async function main() {
     const index = await buildProductIndex();
     let totalOffers = 0, totalErrors = 0;
 
-    // ---- フェーズ1: JANコード検索 ----
+    // ---- フェーズ1: JANコード検索（Yahoo未登録商品のみ） ----
     const janCodes = [...index.janMap.keys()];
-    console.log(`\n[フェーズ1] JANコード検索: ${janCodes.length}件`);
-    let janOffers = 0, janErrors = 0;
+    console.log(`\n[フェーズ1] JANコード検索: ${janCodes.length}件（既登録はスキップ済み）`);
+    // consecutive429: バックオフ後も失敗が続く場合に終了するカウンタ
+    let janOffers = 0, janErrors = 0, janProcessed = 0, consecutive429 = 0;
 
     for (const janCode of janCodes) {
         await sleep(API_INTERVAL_MS);
         let hits: YahooHit[];
         try {
             hits = await fetchYahooByJan(janCode);
+            consecutive429 = 0;
         } catch (e) {
-            console.error(`  [API error] JAN=${janCode}:`, (e as Error).message);
+            const msg = (e as Error).message;
+            console.error(`  [API error] JAN=${janCode}:`, msg);
             janErrors++;
+            if (msg.includes('429')) {
+                consecutive429++;
+                if (consecutive429 >= 3) {
+                    console.error(`  [中止] 429エラーが${consecutive429}回連続。日次クォータ超過。フェーズ1を終了します。`);
+                    break;
+                }
+            } else {
+                consecutive429 = 0;
+            }
             continue;
         }
 
@@ -349,14 +396,22 @@ async function main() {
                 janErrors++;
             }
         }
+
+        janProcessed++;
+        if (janProcessed % 100 === 0) {
+            console.log(`  進捗: ${janProcessed}/${janCodes.length}件処理済み（オファー追加: ${janOffers}件）`);
+        }
     }
-    console.log(`  → オファー追加: ${janOffers}件 / エラー: ${janErrors}件`);
+    console.log(`  → 処理: ${janProcessed}件 / オファー追加: ${janOffers}件 / エラー: ${janErrors}件`);
     totalOffers += janOffers;
     totalErrors += janErrors;
 
     // ---- フェーズ2: キーワード検索 ----
     console.log(`\n[フェーズ2] キーワード検索`);
+    let phase2consecutive429 = 0;
+    let phase2Aborted = false;
     for (const sq of SEARCH_QUERIES) {
+        if (phase2Aborted) break;
         const categoryId = categoryMap.get(sq.categoryCode);
         if (!categoryId) {
             console.warn(`[skip] categoryCode="${sq.categoryCode}" not found`);
@@ -375,8 +430,19 @@ async function main() {
             let data: YahooSearchResponse;
             try {
                 data = await fetchYahooItems(sq.query, start);
+                phase2consecutive429 = 0;
             } catch (e) {
-                console.error(`  [API error] start=${start}:`, (e as Error).message);
+                const msg = (e as Error).message;
+                console.error(`  [API error] start=${start}:`, msg);
+                if (msg.includes('429')) {
+                    phase2consecutive429++;
+                    if (phase2consecutive429 >= 3) {
+                        console.error(`  [中止] 429エラーが${phase2consecutive429}回連続。日次クォータ超過。フェーズ2を終了します。`);
+                        phase2Aborted = true;
+                    }
+                } else {
+                    phase2consecutive429 = 0;
+                }
                 break;
             }
 
