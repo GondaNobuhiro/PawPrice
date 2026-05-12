@@ -22,6 +22,8 @@ const API_INTERVAL_MS = 2100;      // 公式制限: 30リクエスト/分（2022
 const DEACTIVATE_AFTER_DAYS = 30;
 // 429発生時のバックオフ待機時間（公式: 詳細非公開、自動解除まで待機）
 const BACKOFF_DELAYS_MS = [5 * 60_000, 15 * 60_000]; // 5分 → 15分
+// 1回の実行で消費するリクエスト上限（429が約4,700件で発生するため余裕を持って設定）
+const DAILY_REQUEST_LIMIT = 4000;
 
 // ---- 型定義 ----
 type YahooHit = {
@@ -355,33 +357,27 @@ async function main() {
         .map(r => ({ keyword: r.keyword.normalize('NFKC').toLowerCase(), brandId: r.brand.id, priority: r.priority }));
 
     const index = await buildProductIndex();
-    let totalOffers = 0, totalErrors = 0;
+    let totalOffers = 0, totalErrors = 0, requestCount = 0;
 
     // ---- フェーズ1: JANコード検索（Yahoo未登録商品のみ） ----
     const janCodes = [...index.janMap.keys()];
     console.log(`\n[フェーズ1] JANコード検索: ${janCodes.length}件（既登録はスキップ済み）`);
-    // consecutive429: バックオフ後も失敗が続く場合に終了するカウンタ
-    let janOffers = 0, janErrors = 0, janProcessed = 0, consecutive429 = 0;
+    let janOffers = 0, janErrors = 0, janProcessed = 0;
 
     for (const janCode of janCodes) {
+        if (requestCount >= DAILY_REQUEST_LIMIT) {
+            console.log(`  [上限] 日次リクエスト上限(${DAILY_REQUEST_LIMIT}件)に達しました。残り${janCodes.length - janProcessed}件は翌日以降に処理されます。`);
+            break;
+        }
         await sleep(API_INTERVAL_MS);
+        requestCount++;
         let hits: YahooHit[];
         try {
             hits = await fetchYahooByJan(janCode);
-            consecutive429 = 0;
         } catch (e) {
             const msg = (e as Error).message;
             console.error(`  [API error] JAN=${janCode}:`, msg);
             janErrors++;
-            if (msg.includes('429')) {
-                consecutive429++;
-                if (consecutive429 >= 3) {
-                    console.error(`  [中止] 429エラーが${consecutive429}回連続。日次クォータ超過。フェーズ1を終了します。`);
-                    break;
-                }
-            } else {
-                consecutive429 = 0;
-            }
             continue;
         }
 
@@ -408,7 +404,6 @@ async function main() {
 
     // ---- フェーズ2: キーワード検索 ----
     console.log(`\n[フェーズ2] キーワード検索`);
-    let phase2consecutive429 = 0;
     let phase2Aborted = false;
     for (const sq of SEARCH_QUERIES) {
         if (phase2Aborted) break;
@@ -425,24 +420,20 @@ async function main() {
         let queryOffers = 0;
 
         while (start <= maxPages * RESULTS_PER_PAGE) {
+            if (requestCount >= DAILY_REQUEST_LIMIT) {
+                console.log(`  [上限] 日次リクエスト上限(${DAILY_REQUEST_LIMIT}件)に達しました。フェーズ2を終了します。`);
+                phase2Aborted = true;
+                break;
+            }
             await sleep(API_INTERVAL_MS);
+            requestCount++;
 
             let data: YahooSearchResponse;
             try {
                 data = await fetchYahooItems(sq.query, start);
-                phase2consecutive429 = 0;
             } catch (e) {
                 const msg = (e as Error).message;
                 console.error(`  [API error] start=${start}:`, msg);
-                if (msg.includes('429')) {
-                    phase2consecutive429++;
-                    if (phase2consecutive429 >= 3) {
-                        console.error(`  [中止] 429エラーが${phase2consecutive429}回連続。日次クォータ超過。フェーズ2を終了します。`);
-                        phase2Aborted = true;
-                    }
-                } else {
-                    phase2consecutive429 = 0;
-                }
                 break;
             }
 
@@ -491,6 +482,7 @@ async function main() {
     });
 
     console.log(`\n=== 完了 ===`);
+    console.log(`リクエスト数: ${requestCount}件 / 上限: ${DAILY_REQUEST_LIMIT}件`);
     console.log(`オファー追加: ${totalOffers}件 / エラー: ${totalErrors}件`);
     console.log(`非アクティブ化: ${deactivated.count}件`);
 
