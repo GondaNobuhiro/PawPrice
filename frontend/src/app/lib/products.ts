@@ -319,7 +319,7 @@ export function getProducts(params: {
     return unstable_cache(
         () => fetchProducts({ q, categoryId, sort, petType, page }),
         ['products', q, categoryId, sort, petType, page],
-        { revalidate: 300 }, // 5分キャッシュ
+        { revalidate: 1800 }, // 30分キャッシュ
     )();
 }
 
