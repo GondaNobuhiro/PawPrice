@@ -17,7 +17,7 @@ const pool =
     globalForPrisma.pool ??
     new Pool({
         connectionString,
-        max: 3,
+        max: 1,
         idleTimeoutMillis: 30_000,
         connectionTimeoutMillis: 15_000,
         // PgBouncer（Neon pooler）はPrepared Statementを無効化する必要がある
