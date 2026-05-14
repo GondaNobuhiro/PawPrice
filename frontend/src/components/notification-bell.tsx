@@ -62,7 +62,7 @@ export default function NotificationBell() {
 
     useEffect(() => {
         fetchUnreadCount();
-        const intervalId = window.setInterval(fetchUnreadCount, 30000);
+        const intervalId = window.setInterval(fetchUnreadCount, 300000); // 5分ごと
         return () => window.clearInterval(intervalId);
     }, []);
 
