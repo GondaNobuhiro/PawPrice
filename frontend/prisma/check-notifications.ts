@@ -15,21 +15,35 @@ const prisma = new PrismaClient({
 
 async function main() {
     const watchlists = await prisma.watchlist.findMany({
-        include: {
-            user: true,
+        select: {
+            user: {
+                select: {
+                    id: true,
+                    email: true,
+                    notifyEnabled: true,
+                },
+            },
             product: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
                     offers: {
-                        where: {
-                            isActive: true,
-                        },
-                        orderBy: {
-                            effectivePrice: 'asc',
+                        where: { isActive: true },
+                        orderBy: { effectivePrice: 'asc' },
+                        select: {
+                            id: true,
+                            effectivePrice: true,
+                            lastFetchedAt: true,
                         },
                     },
                 },
             },
-            watchCondition: true,
+            watchCondition: {
+                select: {
+                    targetPrice: true,
+                    notifyOnLowest: true,
+                },
+            },
         },
     });
 
