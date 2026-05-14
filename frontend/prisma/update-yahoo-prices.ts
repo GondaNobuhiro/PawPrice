@@ -19,6 +19,9 @@ const API_BASE = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch
 const RESULTS_PER_PAGE = 100;
 const API_INTERVAL_MS = 2100;      // 公式制限: 30リクエスト/分（2022-05-20変更）。60s÷30=2s、安全マージン込み2.1s
 const DEACTIVATE_AFTER_DAYS = 30;
+// 1回の実行で処理するリクエスト上限（10,246 JAN × 2.1s = 366分でタイムアウト超過のため）
+// 3,500件 × 2.1s = 約123分。1日3回 × 3,500 = 10,500件で全件カバー
+const PRICE_UPDATE_LIMIT = 3500;
 
 type YahooHit = {
     name: string;
@@ -73,6 +76,7 @@ async function main() {
     const now = new Date();
 
     // アクティブな楽天オファーを持つ商品のYahooオファーのみ対象
+    // lastFetchedAt昇順（最古優先）で取得し、上限に達したら残りは次回に回す
     const offers = await prisma.productOffer.findMany({
         where: {
             shopType: 'yahoo',
@@ -85,9 +89,11 @@ async function main() {
             price: true,
             pointAmount: true,
             effectivePrice: true,
+            lastFetchedAt: true,
             _count: { select: { priceHistories: true } },
             product: { select: { janCode: true, normalizedName: true } },
         },
+        orderBy: { lastFetchedAt: 'asc' },
     });
 
     console.log(`対象オファー: ${offers.length}件\n`);
@@ -108,12 +114,17 @@ async function main() {
         janToOffers.get(jan)!.push(o);
     }
 
-    let updated = 0, unchanged = 0, notFound = 0, errors = 0, baselineCreated = 0;
+    let updated = 0, unchanged = 0, notFound = 0, errors = 0, baselineCreated = 0, requestCount = 0;
 
     // ---- JANコードで一括検索・更新 ----
     console.log(`[JAN検索] ${janToOffers.size}種類のJANコードを処理中...`);
     for (const [janCode, janOffers] of janToOffers) {
+        if (requestCount >= PRICE_UPDATE_LIMIT) {
+            console.log(`  [上限] リクエスト上限(${PRICE_UPDATE_LIMIT}件)に達しました。残り${janToOffers.size - requestCount}件は次回以降に処理されます。`);
+            break;
+        }
         await sleep(API_INTERVAL_MS);
+        requestCount++;
         let hits: YahooHit[] = [];
         try {
             hits = await searchByJan(janCode);
@@ -181,7 +192,12 @@ async function main() {
     console.log(`\n[名前検索] ${withoutJan.length}件を処理中...`);
     for (const offer of withoutJan) {
         if (!offer.product.normalizedName) { notFound++; continue; }
+        if (requestCount >= PRICE_UPDATE_LIMIT) {
+            console.log(`  [上限] リクエスト上限(${PRICE_UPDATE_LIMIT}件)に達しました。`);
+            break;
+        }
         await sleep(API_INTERVAL_MS);
+        requestCount++;
 
         let hit: YahooHit | null = null;
         try {
@@ -248,6 +264,7 @@ async function main() {
     });
 
     console.log(`\n=== 完了 ===`);
+    console.log(`リクエスト数: ${requestCount}件 / 上限: ${PRICE_UPDATE_LIMIT}件`);
     console.log(`更新: ${updated}件 / 変化なし: ${unchanged}件 / 未検出: ${notFound}件`);
     console.log(`ベースライン作成: ${baselineCreated}件 / エラー: ${errors}件`);
     console.log(`非アクティブ化: ${deactivated.count}件`);
