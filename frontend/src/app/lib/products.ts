@@ -352,7 +352,15 @@ export type ProductDetail = {
     }[];
 };
 
-export async function getProduct(id: string): Promise<ProductDetail | null> {
+export function getProduct(id: string): Promise<ProductDetail | null> {
+    return unstable_cache(
+        () => fetchProduct(id),
+        ['product', id],
+        { revalidate: 1800 }, // 30分キャッシュ
+    )();
+}
+
+async function fetchProduct(id: string): Promise<ProductDetail | null> {
     const product = await prisma.product.findUnique({
         where: { id: BigInt(id) },
         include: {
