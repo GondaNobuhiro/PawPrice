@@ -2,11 +2,20 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const BOT_UA_PATTERNS = [
+    // ヘッドレスブラウザ・スクレイパー
     /HeadlessChrome/i,
     /PhantomJS/i,
     /Selenium/i,
     /Puppeteer/i,
     /Playwright/i,
+    // AIクローラー
+    /GPTBot/i,
+    /ClaudeBot/i,
+    /PerplexityBot/i,
+    /CCBot/i,
+    /Amazonbot/i,
+    /anthropic-ai/i,
+    /cohere-ai/i,
 ];
 
 export default function middleware(request: NextRequest) {
