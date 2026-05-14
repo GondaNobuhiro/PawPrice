@@ -139,11 +139,11 @@ export default function NotificationBell() {
                 type="button"
                 onClick={handleBellClick}
                 disabled={loading}
-                className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#eadfce] bg-[#fffdf9] shadow-sm transition hover:bg-[#f8f0e5] disabled:opacity-50"
+                className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-sky-300 bg-white/70 shadow-sm transition hover:bg-sky-100 disabled:opacity-50"
                 aria-label="通知一覧"
                 title="通知一覧"
             >
-                <Bell className="h-5 w-5 text-[#7a6657]" />
+                <Bell className="h-5 w-5 text-[#0369a1]" />
                 {unreadCount > 0 && (
                     <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[#d98f5c] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -152,7 +152,7 @@ export default function NotificationBell() {
             </button>
 
             {open && (
-                <div className="absolute right-0 top-14 z-50 w-[360px] overflow-hidden rounded-3xl border border-[#eadfce] bg-[#fffdf9] shadow-xl">
+                <div className="fixed inset-x-3 top-[4.5rem] z-50 overflow-hidden rounded-2xl border border-[#eadfce] bg-[#fffdf9] shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-14 sm:w-[360px] sm:rounded-3xl">
                     <div className="flex items-center justify-between border-b border-[#efe4d7] px-4 py-3">
                         <div className="text-sm font-semibold text-[#4b3425]">通知</div>
                         {unreadCount > 0 && (

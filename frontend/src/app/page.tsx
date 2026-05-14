@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
+import { Search, ShoppingBag, Bell, BarChart2, Tag, Truck, ArrowUpRight, X } from 'lucide-react';
 import WatchButton from '@/src/components/watch-button';
 import PushSubscribeButton from '@/src/components/push-subscribe-button';
 import CategoryFilterChips from '@/src/components/category-filter-chips';
@@ -24,10 +25,7 @@ const websiteJsonLd = {
     description: '犬・猫用品の最安値をショップ横断で比較。価格推移・ポイント還元込みの実質価格を確認できます。',
     potentialAction: {
         '@type': 'SearchAction',
-        target: {
-            '@type': 'EntryPoint',
-            urlTemplate: `${BASE_URL}/?q={search_term_string}`,
-        },
+        target: { '@type': 'EntryPoint', urlTemplate: `${BASE_URL}/?q={search_term_string}` },
         'query-input': 'required name=search_term_string',
     },
 };
@@ -45,20 +43,22 @@ function formatRelativeTime(isoString: string): string {
 function PetTypeBadge({ petType }: { petType: string }) {
     if (petType === 'dog') {
         return (
-            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                🐕 犬
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
+                <img src="/image/icon/dogs.jpg" alt="" width={14} height={14} className="rounded-sm object-contain" />
+                犬
             </span>
         );
     }
     if (petType === 'cat') {
         return (
-            <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800">
-                🐈 猫
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700 ring-1 ring-violet-200">
+                <img src="/image/icon/cats.jpg" alt="" width={14} height={14} className="rounded-sm object-contain" />
+                猫
             </span>
         );
     }
     return (
-        <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
+        <span className="inline-flex items-center rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600 ring-1 ring-stone-200">
             🐾 犬猫
         </span>
     );
@@ -100,44 +100,64 @@ export default async function Home({ searchParams }: Props) {
     const pagination = productsResponse.pagination;
 
     return (
-        <main className="min-h-screen bg-[#f0f9ff] px-6 py-8">
+        <main className="min-h-screen bg-[#FAF8F4] px-4 py-6 md:px-6 md:py-8">
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
-            <div className="mx-auto max-w-6xl space-y-6">
+            <div className="mx-auto max-w-6xl space-y-5">
 
-                {/* ヒーローセクション（トップページのみ） */}
+                {/* ヒーローセクション */}
                 {!isFiltered && page === '1' ? (
-                    <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0ea5e9] via-[#38bdf8] to-[#7dd3fc] p-8 text-white shadow-lg md:p-12">
-                        {/* 右側の写真（デスクトップのみ） */}
-                        <div className="absolute bottom-0 right-0 top-0 hidden w-80 overflow-hidden rounded-r-3xl md:block">
+                    <section className="animate-fade-in relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#e0f2fe] to-[#bae6fd] p-8 md:p-12">
+                        <div className="absolute bottom-0 right-0 top-0 hidden w-[420px] overflow-hidden rounded-r-2xl md:block">
                             <Image
                                 src="/image/dogs-with-bowl.jpeg"
-                                alt="ポメラニアン"
+                                alt="ペット用品"
                                 fill
                                 className="object-cover object-center"
                                 priority
                             />
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#38bdf8]/60 via-[#38bdf8]/15 to-transparent" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#e0f2fe] via-[#e0f2fe]/30 to-transparent" />
                         </div>
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_50%,rgba(14,165,233,0.1),transparent_60%)]" />
 
                         <div className="relative z-10 max-w-xl">
-                            <div className="mb-4 inline-flex rounded-full bg-white/25 px-3 py-1 text-xs font-semibold text-white">
-                                🐾 Dog &amp; Cat Price Watch
+                            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-sky-300 bg-sky-200/60 px-3 py-1.5 text-xs font-medium text-[#0369a1]">
+                                <span className="animate-pulse-soft h-1.5 w-1.5 rounded-full bg-[#EA580C]" />
+                                Dog &amp; Cat Price Watch
                             </div>
-                            <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
-                                ペット用品の<br />最安値を比較
+
+                            <h1 className="mb-4 text-4xl font-bold leading-tight tracking-tight text-[#0c4a6e] md:text-5xl">
+                                ペット用品の<br />
+                                <span className="text-[#EA580C]">最安値</span>を比較
                             </h1>
-                            <p className="mb-6 text-lg text-white/90">
-                                犬・猫用品をショップ横断で比較。ポイント還元込みの実質価格と価格推移をチェックできます。
+
+                            <p className="mb-7 text-sm leading-7 text-[#0369a1]">
+                                犬・猫用品をショップ横断で比較。ポイント還元込みの実質価格と<br className="hidden md:block" />
+                                価格推移をいつでもチェックできます。
                             </p>
-                            <div className="mb-6 flex flex-wrap gap-2">
-                                <span className="rounded-full bg-white/20 px-3 py-1.5 text-sm">🔍 複数ショップを横断比較</span>
-                                <span className="rounded-full bg-white/20 px-3 py-1.5 text-sm">📊 価格推移グラフ</span>
-                                <span className="rounded-full bg-white/20 px-3 py-1.5 text-sm">💰 ポイント還元込み実質価格</span>
-                                <span className="rounded-full bg-white/20 px-3 py-1.5 text-sm">🔔 値下がり通知</span>
+
+                            <div className="mb-8 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                {[
+                                    { icon: <ShoppingBag className="h-3.5 w-3.5" />, label: '横断比較' },
+                                    { icon: <BarChart2 className="h-3.5 w-3.5" />, label: '価格推移' },
+                                    { icon: <Tag className="h-3.5 w-3.5" />, label: 'ポイント還元' },
+                                    { icon: <Bell className="h-3.5 w-3.5" />, label: '値下がり通知' },
+                                ].map(({ icon, label }) => (
+                                    <div
+                                        key={label}
+                                        className="flex items-center gap-1.5 rounded-xl border border-sky-300 bg-white/40 px-3 py-2.5 text-xs font-medium text-[#0369a1]"
+                                    >
+                                        {icon}
+                                        {label}
+                                    </div>
+                                ))}
                             </div>
+
                             <div className="flex flex-wrap items-center gap-4">
-                                <div className="text-sm text-white/80">
-                                    <span className="text-2xl font-bold text-white">{pagination.totalCount.toLocaleString()}</span> 商品を比較中
+                                <div className="text-sm text-[#0369a1]">
+                                    <span className="font-display text-2xl font-normal text-[#0c4a6e]">
+                                        {pagination.totalCount.toLocaleString()}
+                                    </span>
+                                    {' '}商品を比較中
                                 </div>
                                 <PushSubscribeButton />
                             </div>
@@ -146,26 +166,24 @@ export default async function Home({ searchParams }: Props) {
                 ) : null}
 
                 {/* 検索フォーム */}
-                <section className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm">
+                <section className="rounded-2xl border border-[#E7E5E4] bg-white p-4 shadow-sm">
                     <form>
-                        <div className="grid gap-4 md:grid-cols-[1fr_160px_160px_140px]">
+                        <div className="grid gap-3 md:grid-cols-[1fr_150px_150px_120px]">
                             <div className="relative">
-                                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                                    🔍
-                                </span>
+                                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A8A29E]" />
                                 <input
                                     type="text"
                                     name="q"
                                     defaultValue={q}
                                     placeholder="商品名で検索（例: ロイヤルカナン）"
-                                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 pl-10 pr-4 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-sky-400 focus:bg-white"
+                                    className="w-full rounded-xl border border-[#E7E5E4] bg-[#FAF8F4] py-2.5 pl-10 pr-4 text-sm outline-none transition placeholder:text-[#C4BAB4] focus:border-[#EA580C] focus:bg-white focus:ring-2 focus:ring-[#EA580C]/10"
                                 />
                             </div>
 
                             <select
                                 name="petType"
                                 defaultValue={petType}
-                                className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-sky-400 focus:bg-white"
+                                className="rounded-xl border border-[#E7E5E4] bg-[#FAF8F4] px-3 py-2.5 text-sm text-[#57534E] outline-none transition focus:border-[#EA580C] focus:bg-white"
                             >
                                 <option value="">🐾 すべて</option>
                                 <option value="dog">🐕 犬</option>
@@ -175,7 +193,7 @@ export default async function Home({ searchParams }: Props) {
                             <select
                                 name="sort"
                                 defaultValue={sort}
-                                className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-sky-400 focus:bg-white"
+                                className="rounded-xl border border-[#E7E5E4] bg-[#FAF8F4] px-3 py-2.5 text-sm text-[#57534E] outline-none transition focus:border-[#EA580C] focus:bg-white"
                             >
                                 <option value="newest">新着順</option>
                                 <option value="price_asc">安い順</option>
@@ -184,8 +202,9 @@ export default async function Home({ searchParams }: Props) {
 
                             <button
                                 type="submit"
-                                className="rounded-2xl bg-[#f97316] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#ea580c]"
+                                className="flex items-center justify-center gap-1.5 rounded-xl bg-[#EA580C] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#C2410C] active:scale-[0.98]"
                             >
+                                <Search className="h-3.5 w-3.5" />
                                 検索
                             </button>
                         </div>
@@ -194,16 +213,17 @@ export default async function Home({ searchParams }: Props) {
                         <div className="mt-3 flex justify-end">
                             <Link
                                 href="/"
-                                className="text-sm text-sky-600 underline hover:text-sky-800"
+                                className="inline-flex items-center gap-1 text-xs text-[#A8A29E] transition hover:text-[#EA580C]"
                             >
-                                × フィルターをクリア
+                                <X className="h-3 w-3" />
+                                フィルターをクリア
                             </Link>
                         </div>
                     )}
                 </section>
 
                 {/* カテゴリ・フィルター */}
-                <section className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm">
+                <section className="rounded-2xl border border-[#E7E5E4] bg-white p-5 shadow-sm">
                     <CategoryFilterChips
                         categories={categories}
                         selectedCategoryId={categoryId}
@@ -229,7 +249,7 @@ export default async function Home({ searchParams }: Props) {
                 </section>
 
                 {products.length === 0 ? (
-                    <section className="rounded-3xl border border-sky-100 bg-white p-10 text-center shadow-sm">
+                    <section className="rounded-2xl border border-[#E7E5E4] bg-white p-12 text-center shadow-sm">
                         <div className="mb-6 flex justify-center">
                             <div className="relative h-44 w-64 overflow-hidden rounded-2xl shadow-sm">
                                 <Image
@@ -241,86 +261,93 @@ export default async function Home({ searchParams }: Props) {
                                 />
                             </div>
                         </div>
-                        <p className="font-semibold text-gray-700">条件に一致する商品はありません</p>
-                        <p className="mt-1 text-sm text-gray-400">検索条件を変えてお試しください</p>
+                        <p className="font-semibold text-[#1C1917]">条件に一致する商品はありません</p>
+                        <p className="mt-1.5 text-sm text-[#A8A29E]">検索条件を変えてお試しください</p>
                     </section>
                 ) : (
                     <>
-                        <div className="grid gap-5">
-                            {products.map((product) => (
+                        <div className="grid gap-4">
+                            {products.map((product, index) => (
                                 <article
                                     key={product.id}
-                                    className={`rounded-3xl border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+                                    className={`group animate-fade-up overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ${
                                         product.priceSummary?.isPriceDown
                                             ? 'border-rose-200'
-                                            : 'border-sky-100'
+                                            : 'border-[#E7E5E4]'
                                     }`}
+                                    style={{ animationDelay: `${index * 55}ms` }}
                                 >
-                                    <div className="grid gap-5 md:grid-cols-[170px_1fr]">
+                                    {product.priceSummary?.isPriceDown && (
+                                        <div className="h-0.5 w-full bg-gradient-to-r from-rose-500 via-rose-400 to-transparent" />
+                                    )}
+
+                                    <div className="grid gap-5 p-5 md:grid-cols-[160px_1fr]">
                                         <div className="flex items-start justify-center">
                                             {product.imageUrl ? (
                                                 <Image
                                                     src={product.imageUrl}
                                                     alt={product.name}
-                                                    width={160}
-                                                    height={160}
-                                                    className="h-40 w-40 rounded-2xl border border-sky-100 bg-sky-50 object-contain p-3"
+                                                    width={152}
+                                                    height={152}
+                                                    className="h-38 w-38 rounded-xl border border-[#F0EDE8] bg-[#FAF8F4] object-contain p-2 transition-transform duration-300 group-hover:scale-[1.03]"
                                                     unoptimized
                                                 />
                                             ) : (
-                                                <div className="flex h-40 w-40 items-center justify-center rounded-2xl border border-sky-100 bg-sky-50 text-sm text-gray-400">
+                                                <div className="flex h-38 w-38 items-center justify-center rounded-xl border border-[#F0EDE8] bg-[#FAF8F4] text-2xl">
                                                     🐾
                                                 </div>
                                             )}
                                         </div>
 
                                         <div>
-                                            <div className="mb-3 flex flex-wrap gap-2">
-                                                <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700">
+                                            <div className="mb-3 flex flex-wrap items-center gap-2">
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-[#F5F4F3] px-2.5 py-1 text-xs font-medium text-[#57534E]">
+                                                    <Tag className="h-3 w-3" />
                                                     {product.category}
                                                 </span>
 
                                                 <PetTypeBadge petType={product.petType} />
 
                                                 {product.priceSummary?.isPriceDown && (
-                                                    <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-600">
-                                                        🔻 値下がり中
+                                                    <span className="animate-badge-pop inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-600 ring-1 ring-sky-200">
+                                                        <img src="/image/icon/price-drops.jpg" alt="" width={14} height={14} className="rounded-sm object-contain" />
+                                                        値下がり中
                                                     </span>
                                                 )}
                                             </div>
 
                                             <Link
                                                 href={`/products/${product.id}?from=${encodeURIComponent(fromUrl)}`}
-                                                className="mb-3 block text-xl font-semibold leading-8 text-gray-800 transition hover:text-[#0ea5e9]"
+                                                className="mb-3 block text-lg font-semibold leading-7 text-[#1C1917] transition-colors hover:text-[#EA580C]"
                                             >
                                                 {product.name}
                                             </Link>
 
                                             {(product.brand || product.packageSize || product.subCategory) && (
-                                                <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
-                                                    {product.brand && <div>ブランド: {product.brand}</div>}
-                                                    {product.packageSize && (
-                                                        <div>内容量: {product.packageSize}</div>
-                                                    )}
-                                                    {product.subCategory && (
-                                                        <div>小分類: {product.subCategory}</div>
-                                                    )}
+                                                <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#A8A29E]">
+                                                    {product.brand && <span>ブランド: {product.brand}</span>}
+                                                    {product.packageSize && <span>内容量: {product.packageSize}</span>}
+                                                    {product.subCategory && <span>小分類: {product.subCategory}</span>}
                                                 </div>
                                             )}
 
                                             <div className="mb-4 flex flex-wrap gap-3">
                                                 {product.priceSummary?.latestEffectivePrice != null && (
-                                                    <div className="rounded-2xl bg-sky-50 px-4 py-3">
-                                                        <div className="text-xs text-gray-500">現在の最安値</div>
-                                                        <div className="text-2xl font-bold text-gray-800">
+                                                    <div className="rounded-xl border border-[#F0EDE8] bg-[#FAF8F4] px-4 py-2.5">
+                                                        <div className="text-[11px] font-medium uppercase tracking-wider text-[#A8A29E]">
+                                                            現在の最安値
+                                                        </div>
+                                                        <div className="font-display mt-0.5 text-2xl text-[#92400E]">
                                                             ¥{product.priceSummary.latestEffectivePrice.toLocaleString()}
                                                         </div>
                                                     </div>
                                                 )}
                                                 {product.priceSummary?.historicalMinPrice != null && (
-                                                    <div className="rounded-2xl bg-amber-50 px-4 py-3">
-                                                        <div className="text-xs text-amber-600">過去最安値</div>
-                                                        <div className="text-2xl font-bold text-amber-700">
+                                                    <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-2.5">
+                                                        <div className="text-[11px] font-medium uppercase tracking-wider text-amber-500">
+                                                            過去最安値
+                                                        </div>
+                                                        <div className="font-display mt-0.5 text-2xl text-amber-700">
                                                             ¥{product.priceSummary.historicalMinPrice.toLocaleString()}
                                                         </div>
                                                     </div>
@@ -328,47 +355,57 @@ export default async function Home({ searchParams }: Props) {
                                             </div>
 
                                             {product.lowestOffer ? (
-                                                <div className="rounded-3xl border border-sky-100 bg-sky-50 p-4">
-                                                    <div className="mb-2 text-sm font-semibold text-gray-600">
-                                                        🛒 最安ショップ
-                                                    </div>
-
-                                                    <div className="mb-3 flex flex-wrap items-end gap-3">
-                                                        <div>
-                                                            <div className="text-sm text-gray-500">
-                                                                {product.lowestOffer.shopType}
-                                                                {product.lowestOffer.sellerName
-                                                                    ? ` / ${product.lowestOffer.sellerName}`
-                                                                    : ''}
-                                                            </div>
-                                                            <div className="mt-1 text-3xl font-bold text-[#f97316]">
-                                                                ¥{product.lowestOffer.effectivePrice.toLocaleString()}
-                                                            </div>
-                                                            <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
-                                                                {product.lowestOffer.pointAmount > 0 && (
-                                                                    <span className="rounded-full bg-orange-100 px-2 py-0.5 text-orange-700">
-                                                                        ポイント還元 ¥{product.lowestOffer.pointAmount.toLocaleString()}
-                                                                    </span>
-                                                                )}
-                                                                {product.lowestOffer.shippingFee === null && (
-                                                                    <span>送料別</span>
-                                                                )}
-                                                                {product.lowestOffer.shippingFee === 0 && (
-                                                                    <span className="text-green-600">✓ 送料無料</span>
-                                                                )}
-                                                                <span>更新: {formatRelativeTime(product.lowestOffer.lastFetchedAt)}</span>
-                                                            </div>
+                                                <div className="rounded-xl border border-[#E7E5E4] bg-[#FAF8F4] p-4">
+                                                    <div className="mb-3 flex items-center gap-2">
+                                                        <ShoppingBag className="h-3.5 w-3.5 text-[#A8A29E]" />
+                                                        <div className="text-xs font-semibold uppercase tracking-wider text-[#A8A29E]">
+                                                            最安ショップ
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex flex-wrap gap-3">
+                                                    <div className="mb-4">
+                                                        <div className="text-xs text-[#A8A29E]">
+                                                            {product.lowestOffer.shopType}
+                                                            {product.lowestOffer.sellerName
+                                                                ? ` / ${product.lowestOffer.sellerName}`
+                                                                : ''}
+                                                        </div>
+                                                        <div className="font-display mt-1 text-3xl text-[#EA580C]">
+                                                            ¥{product.lowestOffer.effectivePrice.toLocaleString()}
+                                                        </div>
+                                                        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                                            {product.lowestOffer.pointAmount > 0 && (
+                                                                <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-700">
+                                                                    Pt還元 ¥{product.lowestOffer.pointAmount.toLocaleString()}
+                                                                </span>
+                                                            )}
+                                                            {product.lowestOffer.shippingFee === null && (
+                                                                <span className="flex items-center gap-0.5 text-[11px] text-[#A8A29E]">
+                                                                    <Truck className="h-3 w-3" />
+                                                                    送料別
+                                                                </span>
+                                                            )}
+                                                            {product.lowestOffer.shippingFee === 0 && (
+                                                                <span className="flex items-center gap-0.5 text-[11px] font-medium text-emerald-600">
+                                                                    <Truck className="h-3 w-3" />
+                                                                    送料無料
+                                                                </span>
+                                                            )}
+                                                            <span className="text-[11px] text-[#C4BAB4]">
+                                                                更新: {formatRelativeTime(product.lowestOffer.lastFetchedAt)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex flex-wrap gap-2.5">
                                                         <a
                                                             href={product.lowestOffer.externalUrl}
                                                             target="_blank"
                                                             rel="noreferrer"
-                                                            className="inline-flex items-center justify-center rounded-2xl bg-[#f97316] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#ea580c]"
+                                                            className="inline-flex items-center gap-1.5 rounded-xl bg-[#EA580C] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#C2410C] active:scale-[0.98]"
                                                         >
-                                                            商品ページを見る →
+                                                            商品ページを見る
+                                                            <ArrowUpRight className="h-3.5 w-3.5" />
                                                         </a>
 
                                                         <WatchButton productId={product.id} />
