@@ -19,7 +19,7 @@ const pool =
         connectionString,
         max: 3,
         idleTimeoutMillis: 30_000,
-        connectionTimeoutMillis: 8_000,
+        connectionTimeoutMillis: 15_000,
         // PgBouncer（Neon pooler）はPrepared Statementを無効化する必要がある
         statement_timeout: 30_000,
     });
