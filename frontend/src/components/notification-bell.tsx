@@ -139,11 +139,11 @@ export default function NotificationBell() {
                 type="button"
                 onClick={handleBellClick}
                 disabled={loading}
-                className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#eadfce] bg-[#fffdf9] shadow-sm transition hover:bg-[#f8f0e5] disabled:opacity-50"
+                className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-sky-300 bg-white/70 shadow-sm transition hover:bg-sky-100 disabled:opacity-50"
                 aria-label="通知一覧"
                 title="通知一覧"
             >
-                <Bell className="h-5 w-5 text-[#7a6657]" />
+                <Bell className="h-5 w-5 text-[#0369a1]" />
                 {unreadCount > 0 && (
                     <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[#d98f5c] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
             {unreadCount > 99 ? '99+' : unreadCount}

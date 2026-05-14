@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
-import { Noto_Sans_JP } from 'next/font/google';
+import { Noto_Sans_JP, DM_Serif_Display } from 'next/font/google';
 import './globals.css';
 import AppHeader from '@/src/components/app-header';
 
@@ -8,6 +8,13 @@ const notoSansJP = Noto_Sans_JP({
     subsets: ['latin'],
     weight: ['400', '500', '600', '700'],
     display: 'swap',
+});
+
+const dmSerifDisplay = DM_Serif_Display({
+    subsets: ['latin'],
+    weight: '400',
+    display: 'swap',
+    variable: '--font-display',
 });
 
 const GA_ID = 'G-09ZJYSBLQC';
@@ -52,7 +59,7 @@ export const metadata: Metadata = {
     },
     manifest: '/manifest.json',
     other: {
-        'theme-color': '#d98f5c',
+        'theme-color': '#EA580C',
     },
 };
 
@@ -63,7 +70,7 @@ export default function RootLayout({
 }>) {
   return (
       <html lang="ja">
-      <body className={`${notoSansJP.className} bg-[#f0f9ff] text-gray-900`}>
+      <body className={`${notoSansJP.className} ${dmSerifDisplay.variable} bg-[#FAF8F4] text-[#1C1917]`}>
       <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
       <Script id="ga-init" strategy="afterInteractive">{`
         window.dataLayer = window.dataLayer || [];

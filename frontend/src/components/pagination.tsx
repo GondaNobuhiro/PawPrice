@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 type Props = {
     page: number;
@@ -31,11 +32,9 @@ function pageNumbers(current: number, total: number): (number | '...')[] {
         return Array.from({ length: total }, (_, i) => i + 1);
     }
 
-    // 5ページのウィンドウを現在ページ中心に配置
     let start = Math.max(1, current - 2);
     let end = Math.min(total, current + 2);
 
-    // 端に寄ったときも必ず5ページ表示する
     if (end - start < 4) {
         if (start === 1) end = Math.min(total, 5);
         else start = Math.max(1, total - 4);
@@ -64,32 +63,32 @@ export default function Pagination({ page, totalPages, q, categoryId, sort, petT
     const pages = pageNumbers(page, totalPages);
 
     return (
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-1.5">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-1">
             <Link
                 href={buildHref(page - 1, q, categoryId, sort, petType)}
                 aria-disabled={page <= 1}
-                className={`rounded-xl px-3 py-2 text-sm ${
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm transition-all ${
                     page <= 1
-                        ? 'pointer-events-none border border-[#eadfce] bg-[#f5f0ea] text-[#c4b09a]'
-                        : 'border border-[#eadfce] bg-white text-[#7a6657] hover:bg-[#f5e8d8]'
+                        ? 'pointer-events-none text-[#C4BAB4]'
+                        : 'border border-[#E7E5E4] bg-white text-[#78716C] hover:bg-[#F5F4F3] hover:text-[#1C1917]'
                 }`}
             >
-                ‹ 前へ
+                <ChevronLeft className="h-4 w-4" />
             </Link>
 
             {pages.map((p, i) =>
                 p === '...' ? (
-                    <span key={`ellipsis-${i}`} className="px-2 py-2 text-sm text-[#b49d88]">
+                    <span key={`ellipsis-${i}`} className="px-1 py-2 text-sm text-[#C4BAB4]">
                         …
                     </span>
                 ) : (
                     <Link
                         key={p}
                         href={buildHref(p, q, categoryId, sort, petType)}
-                        className={`min-w-[2.25rem] rounded-xl px-3 py-2 text-center text-sm ${
+                        className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm transition-all ${
                             p === page
-                                ? 'bg-[#d98f5c] font-medium text-white'
-                                : 'border border-[#eadfce] bg-white text-[#7a6657] hover:bg-[#f5e8d8]'
+                                ? 'bg-[#0284c7] font-medium text-white shadow-sm'
+                                : 'border border-[#E7E5E4] bg-white text-[#78716C] hover:bg-[#F5F4F3] hover:text-[#1C1917]'
                         }`}
                     >
                         {p}
@@ -100,13 +99,13 @@ export default function Pagination({ page, totalPages, q, categoryId, sort, petT
             <Link
                 href={buildHref(page + 1, q, categoryId, sort, petType)}
                 aria-disabled={page >= totalPages}
-                className={`rounded-xl px-3 py-2 text-sm ${
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm transition-all ${
                     page >= totalPages
-                        ? 'pointer-events-none border border-[#eadfce] bg-[#f5f0ea] text-[#c4b09a]'
-                        : 'border border-[#eadfce] bg-white text-[#7a6657] hover:bg-[#f5e8d8]'
+                        ? 'pointer-events-none text-[#C4BAB4]'
+                        : 'border border-[#E7E5E4] bg-white text-[#78716C] hover:bg-[#F5F4F3] hover:text-[#1C1917]'
                 }`}
             >
-                次へ ›
+                <ChevronRight className="h-4 w-4" />
             </Link>
         </div>
     );
