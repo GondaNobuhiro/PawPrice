@@ -152,7 +152,7 @@ export default function NotificationBell() {
             </button>
 
             {open && (
-                <div className="absolute right-0 top-14 z-50 w-[360px] overflow-hidden rounded-3xl border border-[#eadfce] bg-[#fffdf9] shadow-xl">
+                <div className="fixed inset-x-3 top-[4.5rem] z-50 overflow-hidden rounded-2xl border border-[#eadfce] bg-[#fffdf9] shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-14 sm:w-[360px] sm:rounded-3xl">
                     <div className="flex items-center justify-between border-b border-[#efe4d7] px-4 py-3">
                         <div className="text-sm font-semibold text-[#4b3425]">通知</div>
                         {unreadCount > 0 && (
