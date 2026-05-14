@@ -265,6 +265,7 @@ export default async function Home({ searchParams }: Props) {
                                                     width={160}
                                                     height={160}
                                                     className="h-40 w-40 rounded-2xl border border-sky-100 bg-sky-50 object-contain p-3"
+                                                    unoptimized
                                                 />
                                             ) : (
                                                 <div className="flex h-40 w-40 items-center justify-center rounded-2xl border border-sky-100 bg-sky-50 text-sm text-gray-400">

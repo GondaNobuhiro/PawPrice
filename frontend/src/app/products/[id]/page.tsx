@@ -111,6 +111,7 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
                                     width={176}
                                     height={176}
                                     className="h-44 w-44 rounded-xl border object-contain bg-white p-2"
+                                    unoptimized
                                 />
                             ) : (
                                 <div className="flex h-44 w-44 items-center justify-center rounded-xl border bg-gray-100 text-sm text-gray-400">
