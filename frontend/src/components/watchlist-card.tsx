@@ -42,6 +42,7 @@ export default function WatchlistCard({ item, onRemove }: Props) {
                             width={80}
                             height={80}
                             className="h-20 w-20 rounded-xl border border-[#eadfce] object-contain bg-white p-1"
+                            unoptimized
                         />
                     ) : (
                         <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-[#eadfce] bg-gray-50 text-xs text-gray-400">
