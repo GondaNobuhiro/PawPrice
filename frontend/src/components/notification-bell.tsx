@@ -18,28 +18,12 @@ type NotificationPreviewItem = {
 };
 
 export default function NotificationBell() {
-    const [unreadCount, setUnreadCount] = useState(0);
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [notifications, setNotifications] = useState<NotificationPreviewItem[]>([]);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const router = useRouter();
-
-    const fetchUnreadCount = async () => {
-        try {
-            const res = await fetch('/api/notifications/unread-count', {
-                cache: 'no-store',
-            });
-
-            if (!res.ok) return;
-
-            const data: { unreadCount: number } = await res.json();
-            setUnreadCount(data.unreadCount);
-        } catch (error) {
-            console.error(error);
-        }
-    };
 
     const fetchPreview = async () => {
         try {
@@ -59,12 +43,6 @@ export default function NotificationBell() {
             setPreviewLoading(false);
         }
     };
-
-    useEffect(() => {
-        fetchUnreadCount();
-        const intervalId = window.setInterval(fetchUnreadCount, 300000); // 5分ごと
-        return () => window.clearInterval(intervalId);
-    }, []);
 
     useEffect(() => {
         if (!open) return;
@@ -100,7 +78,6 @@ export default function NotificationBell() {
                 ),
             );
 
-            setUnreadCount((prev) => Math.max(0, prev - 1));
             setOpen(false);
 
             router.push(`/products/${productId}`);
@@ -120,7 +97,6 @@ export default function NotificationBell() {
                 method: 'PATCH',
             });
 
-            setUnreadCount(0);
             setOpen(false);
 
             router.push('/notifications');
@@ -144,22 +120,12 @@ export default function NotificationBell() {
                 title="通知一覧"
             >
                 <Bell className="h-5 w-5 text-[#0369a1]" />
-                {unreadCount > 0 && (
-                    <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-[#d98f5c] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
-                )}
             </button>
 
             {open && (
                 <div className="fixed inset-x-3 top-[4.5rem] z-50 overflow-hidden rounded-2xl border border-[#eadfce] bg-[#fffdf9] shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-14 sm:w-[360px] sm:rounded-3xl">
                     <div className="flex items-center justify-between border-b border-[#efe4d7] px-4 py-3">
                         <div className="text-sm font-semibold text-[#4b3425]">通知</div>
-                        {unreadCount > 0 && (
-                            <span className="rounded-full bg-[#f5e8d8] px-2 py-0.5 text-xs font-medium text-[#9a6b3d]">
-                未読 {unreadCount}
-              </span>
-                        )}
                     </div>
 
                     <div className="max-h-[420px] overflow-y-auto">
