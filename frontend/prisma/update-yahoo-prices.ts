@@ -19,9 +19,9 @@ const API_BASE = 'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch
 const RESULTS_PER_PAGE = 100;
 const API_INTERVAL_MS = 2100;      // 公式制限: 30リクエスト/分（2022-05-20変更）。60s÷30=2s、安全マージン込み2.1s
 const DEACTIVATE_AFTER_DAYS = 30;
-// 1回の実行で処理するリクエスト上限（10,246 JAN × 2.1s = 366分でタイムアウト超過のため）
-// 3,500件 × 2.1s = 約123分。1日3回 × 3,500 = 10,500件で全件カバー
-const PRICE_UPDATE_LIMIT = 3500;
+// 1回の実行で処理するリクエスト上限
+// 2,000件 × 2.1s = 約70分。1日3回 × 2,000 = 6,000件（約2日サイクルで全件カバー）
+const PRICE_UPDATE_LIMIT = 2000;
 
 type YahooHit = {
     name: string;

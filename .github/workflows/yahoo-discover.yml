@@ -1,0 +1,40 @@
+name: Yahoo Discover Products
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 毎週日曜 UTC 02:00（JST 11:00）
+    - cron: '0 2 * * 0'
+
+jobs:
+  yahoo-discover:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: yahoo-discover
+      cancel-in-progress: false
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      YAHOO_APP_ID: ${{ secrets.YAHOO_APP_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Discover Yahoo products
+        run: npm run discover:yahoo-products
