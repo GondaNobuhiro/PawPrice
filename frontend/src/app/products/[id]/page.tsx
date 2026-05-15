@@ -57,7 +57,8 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
 
 export default async function ProductDetailPage({ params, searchParams }: Props) {
     const [{ id }, { from }] = await Promise.all([params, searchParams]);
-    const [product, userId] = await Promise.all([getProduct(id), getSessionUserId()]);
+    const userId = await getSessionUserId();
+    const product = await getProduct(id);
     if (!product) notFound();
     const lowestOffer = product.offers[0] ?? null;
 

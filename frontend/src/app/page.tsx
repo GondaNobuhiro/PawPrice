@@ -84,10 +84,10 @@ export default async function Home({ searchParams }: Props) {
     const petType = params.petType ?? '';
     const page = params.page ?? '1';
 
-    const [productsResponse, categories, userId] = await Promise.all([
+    const userId = await getSessionUserId();
+    const [productsResponse, categories] = await Promise.all([
         getProducts({ q, categoryId, sort, petType, page }),
         getCategories(),
-        getSessionUserId(),
     ]);
 
     const isFiltered = q !== '' || categoryId !== '' || petType !== '' || sort !== 'newest';
