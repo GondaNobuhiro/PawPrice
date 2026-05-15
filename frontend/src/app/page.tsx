@@ -213,6 +213,7 @@ export default async function Home({ searchParams }: Props) {
                         <div className="mt-3 flex justify-end">
                             <Link
                                 href="/"
+                                prefetch={false}
                                 className="inline-flex items-center gap-1 text-xs text-[#A8A29E] transition hover:text-[#EA580C]"
                             >
                                 <X className="h-3 w-3" />
@@ -318,6 +319,7 @@ export default async function Home({ searchParams }: Props) {
 
                                             <Link
                                                 href={`/products/${product.id}?from=${encodeURIComponent(fromUrl)}`}
+                                                prefetch={false}
                                                 className="mb-3 block text-lg font-semibold leading-7 text-[#1C1917] transition-colors hover:text-[#EA580C]"
                                             >
                                                 {product.name}

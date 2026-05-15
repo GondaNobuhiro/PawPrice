@@ -66,6 +66,7 @@ export default function Pagination({ page, totalPages, q, categoryId, sort, petT
         <div className="mt-8 flex flex-wrap items-center justify-center gap-1">
             <Link
                 href={buildHref(page - 1, q, categoryId, sort, petType)}
+                prefetch={false}
                 aria-disabled={page <= 1}
                 className={`inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm transition-all ${
                     page <= 1
@@ -85,6 +86,7 @@ export default function Pagination({ page, totalPages, q, categoryId, sort, petT
                     <Link
                         key={p}
                         href={buildHref(p, q, categoryId, sort, petType)}
+                        prefetch={false}
                         className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm transition-all ${
                             p === page
                                 ? 'bg-[#0284c7] font-medium text-white shadow-sm'
@@ -98,6 +100,7 @@ export default function Pagination({ page, totalPages, q, categoryId, sort, petT
 
             <Link
                 href={buildHref(page + 1, q, categoryId, sort, petType)}
+                prefetch={false}
                 aria-disabled={page >= totalPages}
                 className={`inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm transition-all ${
                     page >= totalPages

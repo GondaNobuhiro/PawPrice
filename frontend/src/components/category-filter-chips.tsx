@@ -75,6 +75,7 @@ export default function CategoryFilterChips({
                 {/* すべて */}
                 <Link
                     href={buildHref('', q, sort, petType)}
+                    prefetch={false}
                     className={`flex h-[80px] w-[80px] flex-shrink-0 flex-col items-center overflow-hidden rounded-xl border transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm ${
                         selectedCategoryId === ''
                             ? 'border-2 border-[#EA580C]'
@@ -99,6 +100,7 @@ export default function CategoryFilterChips({
                         <Link
                             key={category.id}
                             href={buildHref(category.id, q, sort, petType)}
+                            prefetch={false}
                             className={`flex h-[80px] w-[80px] flex-shrink-0 flex-col items-center overflow-hidden rounded-xl border transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm ${
                                 isActive
                                     ? 'border-2 border-[#EA580C]'
@@ -131,6 +133,7 @@ export default function CategoryFilterChips({
                 <div className="flex flex-wrap gap-1.5 border-l-2 border-[#E7E5E4] pl-4">
                     <Link
                         href={buildHref(selectedParent.id, q, sort, petType)}
+                        prefetch={false}
                         className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
                             selectedCategoryId === selectedParent.id
                                 ? 'bg-[#EA580C] text-white shadow-sm'
@@ -143,6 +146,7 @@ export default function CategoryFilterChips({
                         <Link
                             key={child.id}
                             href={buildHref(child.id, q, sort, petType)}
+                            prefetch={false}
                             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
                                 child.id === selectedCategoryId
                                     ? 'bg-[#EA580C] text-white shadow-sm'

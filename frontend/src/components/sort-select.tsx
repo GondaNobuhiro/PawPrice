@@ -41,6 +41,7 @@ export default function SortSelect({ q, categoryId, petType, selectedSort, total
                             <Link
                                 key={option.value}
                                 href={buildHref(q, categoryId, petType, option.value)}
+                                prefetch={false}
                                 className={`flex h-[80px] w-[80px] flex-shrink-0 flex-col items-center overflow-hidden rounded-xl border transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm ${
                                     isActive
                                         ? 'border-2 border-[#EA580C]'
