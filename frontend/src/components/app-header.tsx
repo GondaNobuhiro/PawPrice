@@ -35,6 +35,7 @@ export default function AppHeader() {
                                 <Link
                                     key={href}
                                     href={href}
+                                    prefetch={false}
                                     className={`nav-link px-3 py-2 text-sm transition-colors ${
                                         isActive
                                             ? 'active text-[#0c4a6e] font-medium'
@@ -71,6 +72,7 @@ export default function AppHeader() {
                         <Link
                             key={href}
                             href={href}
+                            prefetch={false}
                             onClick={() => setOpen(false)}
                             className={`flex items-center border-b border-sky-300/50 py-3.5 text-sm last:border-0 transition-colors ${
                                 pathname === href
