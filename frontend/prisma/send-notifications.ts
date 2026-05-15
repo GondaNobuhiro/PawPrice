@@ -5,7 +5,7 @@ import { Pool } from 'pg';
 import { webpush } from '../src/lib/web-push';
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-const connectionString = process.env.DATABASE_URL;
+const connectionString = (process.env.DATABASE_URL ?? "").replace("sslmode=require", "sslmode=verify-full");
 
 if (!appUrl) {
     throw new Error('NEXT_PUBLIC_APP_URL is not set');

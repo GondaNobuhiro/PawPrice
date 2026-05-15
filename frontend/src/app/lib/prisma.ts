@@ -7,11 +7,14 @@ const globalForPrisma = globalThis as unknown as {
     pool?: Pool;
 };
 
-const connectionString = process.env.DATABASE_URL;
+const rawUrl = process.env.DATABASE_URL;
 
-if (!connectionString) {
+if (!rawUrl) {
     throw new Error('DATABASE_URL is not set');
 }
+
+// sslmode=require は次世代pgで挙動が変わるため verify-full に明示化して警告を抑制
+const connectionString = rawUrl.replace('sslmode=require', 'sslmode=verify-full');
 
 const pool =
     globalForPrisma.pool ??

@@ -8,7 +8,7 @@ if (!appId) throw new Error('YAHOO_APP_ID is not set');
 
 const prisma = new PrismaClient({
     adapter: new PrismaPg(new Pool({
-        connectionString: process.env.DATABASE_URL,
+        connectionString: (process.env.DATABASE_URL ?? '').replace('sslmode=require', 'sslmode=verify-full'),
         max: 3,
         idleTimeoutMillis: 60000,
         connectionTimeoutMillis: 10000,
