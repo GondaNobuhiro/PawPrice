@@ -10,6 +10,8 @@ import PetTypeFilter from '@/src/components/pet-type-filter';
 import Pagination from '@/src/components/pagination';
 import { getCategories } from '@/src/app/lib/categories';
 import { getProducts } from '@/src/app/lib/products';
+import { getSessionUserId } from '@/src/app/lib/session';
+import { prisma } from '@/src/app/lib/prisma';
 
 const BASE_URL = 'https://paw-price.vercel.app';
 
@@ -82,9 +84,10 @@ export default async function Home({ searchParams }: Props) {
     const petType = params.petType ?? '';
     const page = params.page ?? '1';
 
-    const [productsResponse, categories] = await Promise.all([
+    const [productsResponse, categories, userId] = await Promise.all([
         getProducts({ q, categoryId, sort, petType, page }),
         getCategories(),
+        getSessionUserId(),
     ]);
 
     const isFiltered = q !== '' || categoryId !== '' || petType !== '' || sort !== 'newest';
@@ -98,6 +101,15 @@ export default async function Home({ searchParams }: Props) {
 
     const products = productsResponse.items;
     const pagination = productsResponse.pagination;
+
+    const watchedProductIds = new Set(
+        products.length > 0
+            ? (await prisma.watchlist.findMany({
+                  where: { userId, productId: { in: products.map((p) => BigInt(p.id)) } },
+                  select: { productId: true },
+              })).map((w) => String(w.productId))
+            : [],
+    );
 
     return (
         <main className="min-h-screen bg-[#FAF8F4] px-4 py-6 md:px-6 md:py-8">
@@ -410,7 +422,7 @@ export default async function Home({ searchParams }: Props) {
                                                             <ArrowUpRight className="h-3.5 w-3.5" />
                                                         </a>
 
-                                                        <WatchButton productId={product.id} />
+                                                        <WatchButton productId={product.id} initialWatched={watchedProductIds.has(product.id)} />
                                                     </div>
                                                 </div>
                                             ) : null}

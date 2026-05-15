@@ -5,6 +5,8 @@ import type { Metadata } from 'next';
 import WatchButton from '@/src/components/watch-button';
 import OfferCard from '@/src/components/offer-card';
 import { getProduct } from '@/src/app/lib/products';
+import { getSessionUserId } from '@/src/app/lib/session';
+import { prisma } from '@/src/app/lib/prisma';
 
 function petTypeLabel(petType: string): string {
     switch (petType) {
@@ -55,9 +57,15 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
 
 export default async function ProductDetailPage({ params, searchParams }: Props) {
     const [{ id }, { from }] = await Promise.all([params, searchParams]);
-    const product = await getProduct(id);
+    const [product, userId] = await Promise.all([getProduct(id), getSessionUserId()]);
     if (!product) notFound();
     const lowestOffer = product.offers[0] ?? null;
+
+    const watchEntry = await prisma.watchlist.findUnique({
+        where: { userId_productId: { userId, productId: BigInt(product.id) } },
+        select: { productId: true },
+    });
+    const initialWatched = !!watchEntry;
     const backHref = from ? decodeURIComponent(from) : '/';
 
     const productJsonLd = {
@@ -146,7 +154,7 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
                             )}
 
                             <div className="mt-5">
-                                <WatchButton productId={product.id} />
+                                <WatchButton productId={product.id} initialWatched={initialWatched} />
                             </div>
                         </div>
                     </div>

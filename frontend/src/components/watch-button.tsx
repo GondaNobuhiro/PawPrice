@@ -1,33 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 type Props = {
     productId: string;
+    initialWatched: boolean;
 };
 
-export default function WatchButton({ productId }: Props) {
+export default function WatchButton({ productId, initialWatched }: Props) {
     const [loading, setLoading] = useState(false);
-    const [watched, setWatched] = useState(false);
-    const [initialized, setInitialized] = useState(false);
+    const [watched, setWatched] = useState(initialWatched);
     const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const fetchStatus = async () => {
-            try {
-                const res = await fetch(`/api/watchlists/status/${productId}`, { cache: 'no-store' });
-                if (!res.ok) throw new Error();
-                const data: { watched: boolean } = await res.json();
-                setWatched(data.watched);
-            } catch {
-                // silently ignore — button stays hidden until initialized
-            } finally {
-                setInitialized(true);
-            }
-        };
-
-        fetchStatus();
-    }, [productId]);
 
     const handleToggleWatch = async () => {
         try {
@@ -53,18 +36,6 @@ export default function WatchButton({ productId }: Props) {
             setLoading(false);
         }
     };
-
-    if (!initialized) {
-        return (
-            <button
-                type="button"
-                disabled
-                className="rounded-xl border border-[#eadfce] px-4 py-2 text-sm text-[#7a6657] opacity-50"
-            >
-                読み込み中...
-            </button>
-        );
-    }
 
     return (
         <div className="space-y-1">
