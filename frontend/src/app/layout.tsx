@@ -21,6 +21,13 @@ const GA_ID = 'G-09ZJYSBLQC';
 
 const BASE_URL = 'https://paw-price.vercel.app';
 
+const websiteJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'PawPrice',
+    url: BASE_URL,
+};
+
 const organizationJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -78,6 +85,7 @@ export default function RootLayout({
         gtag('js', new Date());
         gtag('config', '${GA_ID}');
       `}</Script>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
       <AppHeader />
       {children}
