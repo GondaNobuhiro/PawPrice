@@ -2,20 +2,12 @@ import * as cdk from 'aws-cdk-lib';
 import * as amplify from '@aws-cdk/aws-amplify-alpha';
 import * as codebuild from 'aws-cdk-lib/aws-codebuild';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as rds from 'aws-cdk-lib/aws-rds';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 
-interface AmplifyStackProps extends cdk.StackProps {
-    rdsInstance: rds.DatabaseInstance;
-}
-
 export class AmplifyStack extends cdk.Stack {
-    constructor(scope: Construct, id: string, props: AmplifyStackProps) {
+    constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
-
-        const { rdsInstance } = props;
-        const rdsSecret = rdsInstance.secret!;
 
         // Amplify SSR 実行用サービスロール
         const serviceRole = new iam.Role(this, 'AmplifyServiceRole', {
@@ -24,14 +16,14 @@ export class AmplifyStack extends cdk.Stack {
                 iam.ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess-Amplify'),
             ],
         });
-        rdsSecret.grantRead(serviceRole);
 
-        // アプリ共通シークレット（事前に手動作成が必要）
+        // アプリシークレット（デプロイ前に手動で1回作成が必要）
         // 作成コマンド:
         //   aws secretsmanager create-secret \
         //     --name pawprice/app-secrets \
         //     --region ap-northeast-1 \
         //     --secret-string '{
+        //       "DATABASE_URL": "postgresql://...(Neon接続文字列)...",
         //       "YAHOO_APP_ID": "...",
         //       "NEXT_PUBLIC_VAPID_PUBLIC_KEY": "...",
         //       "VAPID_PRIVATE_KEY": "...",
@@ -44,15 +36,6 @@ export class AmplifyStack extends cdk.Stack {
             'pawprice/app-secrets',
         );
         appSecrets.grantRead(serviceRole);
-
-        // DATABASE_URL: RDS エンドポイント + Secrets Manager のパスワードを結合
-        const databaseUrl = cdk.Fn.join('', [
-            'postgresql://pawprice:',
-            rdsSecret.secretValueFromJson('password').unsafeUnwrap(),
-            '@',
-            rdsInstance.dbInstanceEndpointAddress,
-            ':5432/pawprice?sslmode=require',
-        ]);
 
         // Next.js モノレポ用ビルドスペック（frontend/ をアプリルートに指定）
         const buildSpec = codebuild.BuildSpec.fromObject({
@@ -84,7 +67,7 @@ export class AmplifyStack extends cdk.Stack {
             ],
         });
 
-        // GitHub PAT の Secrets Manager 格納（事前に手動作成が必要）
+        // GitHub PAT（Secrets Manager に事前登録が必要）
         // 作成コマンド:
         //   aws secretsmanager create-secret \
         //     --name pawprice/github-token \
@@ -100,7 +83,7 @@ export class AmplifyStack extends cdk.Stack {
             }),
             buildSpec,
             environmentVariables: {
-                DATABASE_URL: databaseUrl,
+                DATABASE_URL: appSecrets.secretValueFromJson('DATABASE_URL').unsafeUnwrap(),
                 YAHOO_APP_ID: appSecrets.secretValueFromJson('YAHOO_APP_ID').unsafeUnwrap(),
                 NEXT_PUBLIC_VAPID_PUBLIC_KEY: appSecrets.secretValueFromJson('NEXT_PUBLIC_VAPID_PUBLIC_KEY').unsafeUnwrap(),
                 VAPID_PRIVATE_KEY: appSecrets.secretValueFromJson('VAPID_PRIVATE_KEY').unsafeUnwrap(),
@@ -113,7 +96,6 @@ export class AmplifyStack extends cdk.Stack {
         const cfnApp = amplifyApp.node.defaultChild as amplify.CfnApp;
         cfnApp.platform = 'WEB_COMPUTE';
 
-        // master ブランチを本番環境として設定
         amplifyApp.addBranch('master', {
             branchName: 'master',
             autoBuild: true,
@@ -126,7 +108,7 @@ export class AmplifyStack extends cdk.Stack {
         });
         new cdk.CfnOutput(this, 'AmplifyDefaultDomain', {
             value: `https://master.${amplifyApp.defaultDomain}`,
-            description: 'Amplify デフォルトドメイン（カスタムドメイン設定前の確認用）',
+            description: 'Amplify デフォルトドメイン',
         });
     }
 }
