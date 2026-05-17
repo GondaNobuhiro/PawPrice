@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import * as amplify from '@aws-cdk/aws-amplify-alpha';
+import * as amplifyL1 from 'aws-cdk-lib/aws-amplify';
 import * as codebuild from 'aws-cdk-lib/aws-codebuild';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
@@ -90,7 +91,7 @@ export class AmplifyStack extends cdk.Stack {
         });
 
         // Next.js SSR モードを有効化
-        (amplifyApp.node.defaultChild as amplify.CfnApp).platform = 'WEB_COMPUTE';
+        (amplifyApp.node.defaultChild as amplifyL1.CfnApp).platform = 'WEB_COMPUTE';
 
         // master ブランチへの push で自動デプロイ
         amplifyApp.addBranch('master', {
