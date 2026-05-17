@@ -61,7 +61,7 @@ export class AmplifyStack extends cdk.Stack {
                             },
                         },
                         artifacts: {
-                            baseDirectory: '.next',
+                            baseDirectory: '.amplify-hosting',
                             files: ['**/*'],
                         },
                         cache: {

@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
             { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         ];
 
-        if (process.env.VERCEL_ENV !== 'production') {
+        if (process.env.NODE_ENV !== 'production') {
             return [
                 {
                     source: '/(.*)',
