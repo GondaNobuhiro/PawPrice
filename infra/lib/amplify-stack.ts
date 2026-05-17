@@ -9,7 +9,6 @@ export class AmplifyStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
-        // Amplify SSR 実行用サービスロール
         const serviceRole = new iam.Role(this, 'AmplifyServiceRole', {
             assumedBy: new iam.ServicePrincipal('amplify.amazonaws.com'),
             managedPolicies: [
@@ -17,19 +16,27 @@ export class AmplifyStack extends cdk.Stack {
             ],
         });
 
-        // アプリシークレット（デプロイ前に手動で1回作成が必要）
-        // 作成コマンド:
-        //   aws secretsmanager create-secret \
-        //     --name pawprice/app-secrets \
-        //     --region ap-northeast-1 \
-        //     --secret-string '{
-        //       "DATABASE_URL": "postgresql://...(Neon接続文字列)...",
-        //       "YAHOO_APP_ID": "...",
-        //       "NEXT_PUBLIC_VAPID_PUBLIC_KEY": "...",
-        //       "VAPID_PRIVATE_KEY": "...",
-        //       "VAPID_SUBJECT": "mailto:your@email.com",
-        //       "NEXT_PUBLIC_APP_URL": "https://your-domain.com"
-        //     }'
+        // シークレット2つのみ管理
+        //
+        // [1] pawprice/github-token
+        //   GitHub PAT（repo スコープ）
+        //   作成: aws secretsmanager create-secret \
+        //           --name pawprice/github-token \
+        //           --region ap-northeast-1 \
+        //           --secret-string "ghp_xxxxxxxxxxxxxxxxxxxx"
+        //
+        // [2] pawprice/app-secrets
+        //   {
+        //     "DATABASE_URL":               "postgresql://...(Neon接続文字列)...",
+        //     "VAPID_PRIVATE_KEY":          "...",
+        //     "NEXT_PUBLIC_VAPID_PUBLIC_KEY":"...",
+        //     "VAPID_SUBJECT":              "mailto:your@email.com",
+        //     "NEXT_PUBLIC_APP_URL":        "https://master.xxxxxxxx.amplifyapp.com"
+        //   }
+        //   作成: aws secretsmanager create-secret \
+        //           --name pawprice/app-secrets \
+        //           --region ap-northeast-1 \
+        //           --secret-string '{"DATABASE_URL":"...","VAPID_PRIVATE_KEY":"...",...}'
         const appSecrets = secretsmanager.Secret.fromSecretNameV2(
             this,
             'AppSecrets',
@@ -37,7 +44,6 @@ export class AmplifyStack extends cdk.Stack {
         );
         appSecrets.grantRead(serviceRole);
 
-        // Next.js モノレポ用ビルドスペック（frontend/ をアプリルートに指定）
         const buildSpec = codebuild.BuildSpec.fromObject({
             version: '1',
             applications: [
@@ -45,9 +51,7 @@ export class AmplifyStack extends cdk.Stack {
                     appRoot: 'frontend',
                     frontend: {
                         phases: {
-                            preBuild: {
-                                commands: ['npm ci'],
-                            },
+                            preBuild: { commands: ['npm ci'] },
                             build: {
                                 commands: [
                                     'npx prisma generate',
@@ -67,12 +71,6 @@ export class AmplifyStack extends cdk.Stack {
             ],
         });
 
-        // GitHub PAT（Secrets Manager に事前登録が必要）
-        // 作成コマンド:
-        //   aws secretsmanager create-secret \
-        //     --name pawprice/github-token \
-        //     --region ap-northeast-1 \
-        //     --secret-string "ghp_xxxxxxxxxxxxxxxxxxxx"
         const amplifyApp = new amplify.App(this, 'PawPriceApp', {
             appName: 'PawPrice',
             role: serviceRole,
@@ -83,19 +81,18 @@ export class AmplifyStack extends cdk.Stack {
             }),
             buildSpec,
             environmentVariables: {
-                DATABASE_URL: appSecrets.secretValueFromJson('DATABASE_URL').unsafeUnwrap(),
-                YAHOO_APP_ID: appSecrets.secretValueFromJson('YAHOO_APP_ID').unsafeUnwrap(),
+                DATABASE_URL:                appSecrets.secretValueFromJson('DATABASE_URL').unsafeUnwrap(),
+                VAPID_PRIVATE_KEY:           appSecrets.secretValueFromJson('VAPID_PRIVATE_KEY').unsafeUnwrap(),
                 NEXT_PUBLIC_VAPID_PUBLIC_KEY: appSecrets.secretValueFromJson('NEXT_PUBLIC_VAPID_PUBLIC_KEY').unsafeUnwrap(),
-                VAPID_PRIVATE_KEY: appSecrets.secretValueFromJson('VAPID_PRIVATE_KEY').unsafeUnwrap(),
-                VAPID_SUBJECT: appSecrets.secretValueFromJson('VAPID_SUBJECT').unsafeUnwrap(),
-                NEXT_PUBLIC_APP_URL: appSecrets.secretValueFromJson('NEXT_PUBLIC_APP_URL').unsafeUnwrap(),
+                VAPID_SUBJECT:               appSecrets.secretValueFromJson('VAPID_SUBJECT').unsafeUnwrap(),
+                NEXT_PUBLIC_APP_URL:         appSecrets.secretValueFromJson('NEXT_PUBLIC_APP_URL').unsafeUnwrap(),
             },
         });
 
-        // Next.js SSR モードを明示的に有効化
-        const cfnApp = amplifyApp.node.defaultChild as amplify.CfnApp;
-        cfnApp.platform = 'WEB_COMPUTE';
+        // Next.js SSR モードを有効化
+        (amplifyApp.node.defaultChild as amplify.CfnApp).platform = 'WEB_COMPUTE';
 
+        // master ブランチへの push で自動デプロイ
         amplifyApp.addBranch('master', {
             branchName: 'master',
             autoBuild: true,
