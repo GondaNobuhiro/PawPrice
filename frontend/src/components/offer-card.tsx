@@ -78,9 +78,10 @@ export default function OfferCard({ offer, isLowest }: Props) {
                     href={offer.externalUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm text-gray-700"
+                    className="inline-flex items-center gap-2 justify-center rounded-xl border px-4 py-2 text-sm text-gray-700"
                 >
                     商品ページを見る
+                    <span className="rounded bg-gray-100 px-1 py-0.5 text-[10px] font-medium text-gray-500">PR</span>
                 </a>
                 {hasHistory && (
                     <button

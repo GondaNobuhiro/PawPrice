@@ -89,6 +89,21 @@ export default function RootLayout({
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
       <AppHeader />
       {children}
+      <footer className="mt-16 border-t border-[#E7E5E4] bg-white py-8">
+          <div className="mx-auto max-w-5xl px-4">
+              <div className="flex flex-col items-center gap-3 text-center">
+                  <p className="text-xs font-medium text-[#1C1917]">PawPrice</p>
+                  <nav className="flex flex-wrap justify-center gap-4 text-xs text-[#78716C]">
+                      <a href="/terms" className="hover:text-[#EA580C] transition-colors">利用規約</a>
+                      <a href="/privacy" className="hover:text-[#EA580C] transition-colors">プライバシーポリシー</a>
+                  </nav>
+                  <p className="text-xs text-[#A8A29E]">
+                      当サービスは楽天・Yahoo! JAPANのアフィリエイトプログラムに参加しています（PR）
+                  </p>
+                  <p className="text-xs text-[#A8A29E]">© 2026 PawPrice</p>
+              </div>
+          </div>
+      </footer>
       </body>
       </html>
   );
