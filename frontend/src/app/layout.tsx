@@ -98,7 +98,7 @@ export default function RootLayout({
                       <a href="/privacy" className="hover:text-[#EA580C] transition-colors">プライバシーポリシー</a>
                   </nav>
                   <p className="text-xs text-[#A8A29E]">
-                      当サービスは楽天・Yahoo! JAPANのアフィリエイトプログラムに参加しています（PR）
+                      当サービスは楽天グループ株式会社のアフィリエイトプログラムに参加しています（PR）
                   </p>
                   <p className="text-xs text-[#A8A29E]">© 2026 PawPrice</p>
               </div>
