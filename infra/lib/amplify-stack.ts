@@ -61,7 +61,7 @@ export class AmplifyStack extends cdk.Stack {
                             },
                         },
                         artifacts: {
-                            baseDirectory: '.amplify-hosting',
+                            baseDirectory: '.next',
                             files: ['**/*'],
                         },
                         cache: {
@@ -90,8 +90,8 @@ export class AmplifyStack extends cdk.Stack {
             },
         });
 
-        // Next.js SSR モードを有効化
-        (amplifyApp.node.defaultChild as amplifyL1.CfnApp).platform = 'WEB_COMPUTE';
+        // Next.js SSR モードを有効化（Lambda ベース）
+        (amplifyApp.node.defaultChild as amplifyL1.CfnApp).platform = 'WEB_DYNAMIC';
 
         // master ブランチへの push で自動デプロイ
         amplifyApp.addBranch('master', {
