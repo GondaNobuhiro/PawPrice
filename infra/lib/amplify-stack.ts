@@ -52,8 +52,8 @@ export class AmplifyStack extends cdk.Stack {
                     preBuild: { commands: ['cd frontend && npm ci'] },
                     build: {
                         commands: [
-                            'cd frontend && npx prisma generate',
-                            'cd frontend && npm run build',
+                            'npx prisma generate',
+                            'npm run build',
                         ],
                     },
                 },
