@@ -31,7 +31,7 @@ export class AmplifyStack extends cdk.Stack {
         //     "VAPID_PRIVATE_KEY":          "...",
         //     "NEXT_PUBLIC_VAPID_PUBLIC_KEY":"...",
         //     "VAPID_SUBJECT":              "mailto:your@email.com",
-        //     "NEXT_PUBLIC_APP_URL":        "https://master.xxxxxxxx.amplifyapp.com"
+        //     "NEXT_PUBLIC_APP_URL":        "https://paw-price.com"
         //   }
         //   作成: aws secretsmanager create-secret \
         //           --name pawprice/app-secrets \
