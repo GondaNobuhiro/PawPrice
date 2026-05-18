@@ -1,6 +1,31 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// APIエンドポイント用レート制限（1分間に100リクエスト/IP）
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 100;
+const RATE_WINDOW_MS = 60_000;
+
+function isRateLimited(ip: string): boolean {
+    const now = Date.now();
+    const entry = rateLimitMap.get(ip);
+
+    // 古いエントリを間引く（メモリリーク防止）
+    if (rateLimitMap.size > 5000) {
+        for (const [key, val] of rateLimitMap) {
+            if (now > val.resetAt) rateLimitMap.delete(key);
+        }
+    }
+
+    if (!entry || now >= entry.resetAt) {
+        rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+        return false;
+    }
+    if (entry.count >= RATE_LIMIT) return true;
+    entry.count++;
+    return false;
+}
+
 const BOT_UA_PATTERNS = [
     // ヘッドレスブラウザ・スクレイパー
     /HeadlessChrome/i,
@@ -22,6 +47,26 @@ export default function middleware(request: NextRequest) {
     const ua = request.headers.get('user-agent') ?? '';
     if (BOT_UA_PATTERNS.some((pattern) => pattern.test(ua))) {
         return new NextResponse(null, { status: 403 });
+    }
+
+    // APIルートにレート制限を適用（session/init は除外）
+    if (
+        request.nextUrl.pathname.startsWith('/api/') &&
+        !request.nextUrl.pathname.startsWith('/api/session/')
+    ) {
+        const ip =
+            request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+            request.headers.get('x-real-ip') ??
+            'unknown';
+        if (isRateLimited(ip)) {
+            return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), {
+                status: 429,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Retry-After': '60',
+                },
+            });
+        }
     }
 
     const existing = request.cookies.get('session_id')?.value;

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import { Noto_Sans_JP, DM_Serif_Display } from 'next/font/google';
 import './globals.css';
 import AppHeader from '@/src/components/app-header';
+import GoogleAnalytics from '@/src/components/google-analytics';
 
 const notoSansJP = Noto_Sans_JP({
     subsets: ['latin'],
@@ -16,8 +16,6 @@ const dmSerifDisplay = DM_Serif_Display({
     display: 'swap',
     variable: '--font-display',
 });
-
-const GA_ID = 'G-09ZJYSBLQC';
 
 const BASE_URL = 'https://paw-price.com';
 
@@ -78,13 +76,7 @@ export default function RootLayout({
   return (
       <html lang="ja">
       <body className={`${notoSansJP.className} ${dmSerifDisplay.variable} bg-[#FAF8F4] text-[#1C1917]`}>
-      <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
-      <Script id="ga-init" strategy="afterInteractive">{`
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', '${GA_ID}');
-      `}</Script>
+      <GoogleAnalytics />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
       <AppHeader />
@@ -98,7 +90,7 @@ export default function RootLayout({
                       <a href="/privacy" className="hover:text-[#EA580C] transition-colors">プライバシーポリシー</a>
                   </nav>
                   <p className="text-xs text-[#A8A29E]">
-                      当サービスは楽天グループ株式会社のアフィリエイトプログラムに参加しています（PR）
+                      当サービスは楽天グループ株式会社およびAmazon.co.jpのアフィリエイトプログラムに参加しています（PR）
                   </p>
                   <p className="text-xs text-[#A8A29E]">© 2026 PawPrice</p>
               </div>
