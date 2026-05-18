@@ -1,7 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import * as amplify from '@aws-cdk/aws-amplify-alpha';
 import * as amplifyL1 from 'aws-cdk-lib/aws-amplify';
-import * as codebuild from 'aws-cdk-lib/aws-codebuild';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
@@ -45,28 +44,6 @@ export class AmplifyStack extends cdk.Stack {
         );
         appSecrets.grantRead(serviceRole);
 
-        const buildSpec = codebuild.BuildSpec.fromObject({
-            version: 1,
-            frontend: {
-                phases: {
-                    preBuild: { commands: ['cd frontend && npm ci'] },
-                    build: {
-                        commands: [
-                            'npx prisma generate',
-                            'npm run build',
-                        ],
-                    },
-                },
-                artifacts: {
-                    baseDirectory: 'frontend/.amplify-hosting',
-                    files: ['**/*'],
-                },
-                cache: {
-                    paths: ['frontend/node_modules/**/*', 'frontend/.next/cache/**/*'],
-                },
-            },
-        });
-
         const amplifyApp = new amplify.App(this, 'PawPriceApp', {
             appName: 'PawPrice',
             role: serviceRole,
@@ -75,7 +52,6 @@ export class AmplifyStack extends cdk.Stack {
                 repository: 'PawPrice',
                 oauthToken: cdk.SecretValue.secretsManager('pawprice/github-token'),
             }),
-            buildSpec,
             environmentVariables: {
                 DATABASE_URL:                appSecrets.secretValueFromJson('DATABASE_URL').unsafeUnwrap(),
                 VAPID_PRIVATE_KEY:           appSecrets.secretValueFromJson('VAPID_PRIVATE_KEY').unsafeUnwrap(),
