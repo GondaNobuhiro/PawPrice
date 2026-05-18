@@ -58,8 +58,11 @@ export default function PrivacyPage() {
 
                 <section>
                     <h2 className="mb-3 text-base font-semibold text-[#1C1917]">4. アフィリエイトプログラムについて</h2>
+                    <p className="mb-2">
+                        当サービスは、楽天グループ株式会社のアフィリエイトプログラムに参加しています。楽天市場の商品ページへのリンクを経由してご購入いただいた場合、当サービスに報酬が発生することがあります。
+                    </p>
                     <p>
-                        当サービスは、楽天グループ株式会社のアフィリエイトプログラムに参加しています。楽天市場の商品ページへのリンクを経由してご購入いただいた場合、当サービスに報酬が発生することがあります。表示している価格・情報はアフィリエイト報酬に影響されません。
+                        また、当サービスはAmazon.co.jpのアソシエイトとして、適格販売により収入を得ることがあります。表示している価格・情報はアフィリエイト報酬に影響されません。
                     </p>
                 </section>
 
@@ -87,7 +90,15 @@ export default function PrivacyPage() {
                 <section>
                     <h2 className="mb-3 text-base font-semibold text-[#1C1917]">8. お問い合わせ</h2>
                     <p>
-                        個人情報の取り扱いに関するお問い合わせは、サイト内のお問い合わせフォームよりご連絡ください。
+                        個人情報の取り扱いに関するお問い合わせは、以下のメールアドレスよりご連絡ください。
+                    </p>
+                    <p className="mt-2">
+                        <a
+                            href="mailto:4645n.g0708@gmail.com"
+                            className="text-[#0284C7] underline underline-offset-2"
+                        >
+                            4645n.g0708@gmail.com
+                        </a>
                     </p>
                 </section>
 

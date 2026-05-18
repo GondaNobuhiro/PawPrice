@@ -26,8 +26,11 @@ export default function TermsPage() {
 
                 <section>
                     <h2 className="mb-3 text-base font-semibold text-[#1C1917]">2. アフィリエイトリンクについて（PR）</h2>
-                    <p>
+                    <p className="mb-2">
                         当サービスに掲載している楽天市場の商品ページへのリンクは、楽天グループ株式会社のアフィリエイトプログラムを利用した広告リンク（PR）です。リンクを経由してご購入いただいた場合、当サービスに報酬が発生することがあります。
+                    </p>
+                    <p>
+                        当サービスはAmazon.co.jpのアソシエイトとして、Amazonの商品を紹介することで収入を得ることがあります。商品詳細ページに掲載しているAmazonへのリンクはアフィリエイトリンク（PR）です。
                     </p>
                 </section>
 
