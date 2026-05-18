@@ -286,8 +286,8 @@ async function fetchGenreItems(
     try {
         const res = await fetch(url, {
             headers: {
-                Referer: 'https://pawprice.vercel.app/',
-                Origin: 'https://pawprice.vercel.app',
+                Referer: 'https://paw-price.com/',
+                Origin: 'https://paw-price.com',
                 'User-Agent': 'PawPrice/0.1',
             },
         });

@@ -1,0 +1,21 @@
+{
+  "version": "53.0.0",
+  "files": {
+    "b33962ec3a32fe995f4cf53936644fc02cf1c1189acb01ebdd4f35e639f97948": {
+      "displayName": "PawPriceAmplifyStack Template",
+      "source": {
+        "path": "PawPriceAmplifyStack.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "786684641463-ap-northeast-1-0cffe774": {
+          "bucketName": "cdk-hnb659fds-assets-786684641463-ap-northeast-1",
+          "objectKey": "b33962ec3a32fe995f4cf53936644fc02cf1c1189acb01ebdd4f35e639f97948.json",
+          "region": "ap-northeast-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::786684641463:role/cdk-hnb659fds-file-publishing-role-786684641463-ap-northeast-1"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

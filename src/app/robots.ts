@@ -13,6 +13,6 @@ export default function robots(): MetadataRoute.Robots {
                 disallow: ['/api/', '/watchlists', '/notifications'],
             },
         ],
-        sitemap: 'https://paw-price.vercel.app/sitemap.xml',
+        sitemap: 'https://paw-price.com/sitemap.xml',
     };
 }

@@ -74,8 +74,8 @@ async function fetchGenrePage(
     try {
         const res = await fetch(`${apiBaseUrl}?${params}`, {
             headers: {
-                Referer: 'https://pawprice.vercel.app/',
-                Origin: 'https://pawprice.vercel.app',
+                Referer: 'https://paw-price.com/',
+                Origin: 'https://paw-price.com',
                 'User-Agent': 'PawPrice/1.0',
             },
         });

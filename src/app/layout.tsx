@@ -19,7 +19,7 @@ const dmSerifDisplay = DM_Serif_Display({
 
 const GA_ID = 'G-09ZJYSBLQC';
 
-const BASE_URL = 'https://paw-price.vercel.app';
+const BASE_URL = 'https://paw-price.com';
 
 const websiteJsonLd = {
     '@context': 'https://schema.org',

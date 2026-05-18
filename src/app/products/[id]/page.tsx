@@ -34,7 +34,7 @@ type Props = {
     searchParams: Promise<{ from?: string }>;
 };
 
-const BASE_URL = 'https://paw-price.vercel.app';
+const BASE_URL = 'https://paw-price.com';
 
 export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {
     const { id } = await params;

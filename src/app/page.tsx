@@ -13,7 +13,7 @@ import { getProducts } from '@/src/app/lib/products';
 import { getSessionUserId } from '@/src/app/lib/session';
 import { prisma } from '@/src/app/lib/prisma';
 
-const BASE_URL = 'https://paw-price.vercel.app';
+const BASE_URL = 'https://paw-price.com';
 
 export const metadata: Metadata = {
     alternates: { canonical: BASE_URL },

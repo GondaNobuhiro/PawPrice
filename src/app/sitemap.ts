@@ -1,6 +1,6 @@
 import { prisma } from '@/src/app/lib/prisma';
 
-const BASE_URL = 'https://paw-price.vercel.app';
+const BASE_URL = 'https://paw-price.com';
 
 export default async function sitemap() {
     const products = await prisma.product.findMany({
