@@ -6,7 +6,14 @@ export async function GET(request: NextRequest) {
     // オープンリダイレクト対策: 相対パスのみ許可
     const safePath = next.startsWith('/') ? next : '/';
 
-    const response = NextResponse.redirect(new URL(safePath, request.url));
+    // Amplify WEB_COMPUTE の Lambda では request.url が localhost:3000 になるため
+    // x-forwarded-host または NEXT_PUBLIC_APP_URL からベース URL を組み立てる
+    const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
+    const proto = request.headers.get('x-forwarded-proto') ?? 'https';
+    const baseUrl = host
+        ? `${proto}://${host}`
+        : (process.env.NEXT_PUBLIC_APP_URL ?? request.url);
+    const response = NextResponse.redirect(new URL(safePath, baseUrl));
 
     if (!request.cookies.get('session_id')) {
         response.cookies.set('session_id', crypto.randomUUID(), {
