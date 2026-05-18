@@ -46,30 +46,25 @@ export class AmplifyStack extends cdk.Stack {
         appSecrets.grantRead(serviceRole);
 
         const buildSpec = codebuild.BuildSpec.fromObject({
-            version: '1',
-            applications: [
-                {
-                    appRoot: 'frontend',
-                    frontend: {
-                        phases: {
-                            preBuild: { commands: ['npm ci'] },
-                            build: {
-                                commands: [
-                                    'npx prisma generate',
-                                    'npm run build',
-                                ],
-                            },
-                        },
-                        artifacts: {
-                            baseDirectory: '.next',
-                            files: ['**/*'],
-                        },
-                        cache: {
-                            paths: ['node_modules/**/*', '.next/cache/**/*'],
-                        },
+            version: 1,
+            frontend: {
+                phases: {
+                    preBuild: { commands: ['cd frontend && npm ci'] },
+                    build: {
+                        commands: [
+                            'cd frontend && npx prisma generate',
+                            'cd frontend && npm run build',
+                        ],
                     },
                 },
-            ],
+                artifacts: {
+                    baseDirectory: 'frontend/.amplify-hosting',
+                    files: ['**/*'],
+                },
+                cache: {
+                    paths: ['frontend/node_modules/**/*', 'frontend/.next/cache/**/*'],
+                },
+            },
         });
 
         const amplifyApp = new amplify.App(this, 'PawPriceApp', {
@@ -90,8 +85,8 @@ export class AmplifyStack extends cdk.Stack {
             },
         });
 
-        // Next.js SSR モードを有効化（Lambda ベース）
-        (amplifyApp.node.defaultChild as amplifyL1.CfnApp).platform = 'WEB_DYNAMIC';
+        // Next.js SSR モードを有効化（Compute ベース）
+        (amplifyApp.node.defaultChild as amplifyL1.CfnApp).platform = 'WEB_COMPUTE';
 
         // master ブランチへの push で自動デプロイ
         amplifyApp.addBranch('master', {
