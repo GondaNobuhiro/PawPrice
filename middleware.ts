@@ -43,9 +43,26 @@ const BOT_UA_PATTERNS = [
     /cohere-ai/i,
 ];
 
+function log(status: number, request: NextRequest, ip: string) {
+    console.log(JSON.stringify({
+        type: 'access',
+        status,
+        method: request.method,
+        path: request.nextUrl.pathname + (request.nextUrl.search || ''),
+        ip,
+        ua: (request.headers.get('user-agent') ?? '').substring(0, 150),
+    }));
+}
+
 export default function middleware(request: NextRequest) {
+    const ip =
+        request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+        request.headers.get('x-real-ip') ??
+        'unknown';
+
     const ua = request.headers.get('user-agent') ?? '';
     if (BOT_UA_PATTERNS.some((pattern) => pattern.test(ua))) {
+        log(403, request, ip);
         return new NextResponse(null, { status: 403 });
     }
 
@@ -54,11 +71,8 @@ export default function middleware(request: NextRequest) {
         request.nextUrl.pathname.startsWith('/api/') &&
         !request.nextUrl.pathname.startsWith('/api/session/')
     ) {
-        const ip =
-            request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
-            request.headers.get('x-real-ip') ??
-            'unknown';
         if (isRateLimited(ip)) {
+            log(429, request, ip);
             return new NextResponse(JSON.stringify({ error: 'Too Many Requests' }), {
                 status: 429,
                 headers: {
@@ -88,6 +102,7 @@ export default function middleware(request: NextRequest) {
         });
     }
 
+    log(0, request, ip); // 0 = Lambda に処理を渡した（実際のステータスは Lambda が決定）
     return response;
 }
 
