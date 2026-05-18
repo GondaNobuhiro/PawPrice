@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+    // Amplify WEB_COMPUTE の Lambda は Amplify 環境変数を受け取らないため
+    // ビルド時に値を埋め込む（サーバーサイドのみ、クライアントには非公開）
+    env: {
+        DATABASE_URL:      process.env.DATABASE_URL      ?? '',
+        VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY ?? '',
+        VAPID_SUBJECT:     process.env.VAPID_SUBJECT     ?? '',
+    },
     images: {
         remotePatterns: [
             {

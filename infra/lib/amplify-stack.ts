@@ -65,10 +65,18 @@ export class AmplifyStack extends cdk.Stack {
         (amplifyApp.node.defaultChild as amplifyL1.CfnApp).platform = 'WEB_COMPUTE';
 
         // master ブランチへの push で自動デプロイ
+        // WEB_COMPUTE Lambda はブランチレベルの環境変数を参照するためアプリレベルと同じ値を設定
         amplifyApp.addBranch('master', {
             branchName: 'master',
             autoBuild: true,
             stage: 'PRODUCTION',
+            environmentVariables: {
+                DATABASE_URL:                appSecrets.secretValueFromJson('DATABASE_URL').unsafeUnwrap(),
+                VAPID_PRIVATE_KEY:           appSecrets.secretValueFromJson('VAPID_PRIVATE_KEY').unsafeUnwrap(),
+                NEXT_PUBLIC_VAPID_PUBLIC_KEY: appSecrets.secretValueFromJson('NEXT_PUBLIC_VAPID_PUBLIC_KEY').unsafeUnwrap(),
+                VAPID_SUBJECT:               appSecrets.secretValueFromJson('VAPID_SUBJECT').unsafeUnwrap(),
+                NEXT_PUBLIC_APP_URL:         appSecrets.secretValueFromJson('NEXT_PUBLIC_APP_URL').unsafeUnwrap(),
+            },
         });
 
         new cdk.CfnOutput(this, 'AmplifyAppId', {
