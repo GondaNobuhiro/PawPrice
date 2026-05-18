@@ -28,9 +28,9 @@ npx tsx prisma/<script>.ts
 
 ### 全体構成
 
-- **フロントエンド**: Next.js 16（App Router）+ Tailwind CSS v4
+- **フロントエンド**: Next.js 15（App Router）+ Tailwind CSS v4
 - **DB**: PostgreSQL on Neon（サーバーレス）、Prisma ORM + `@prisma/adapter-pg`
-- **デプロイ**: Vercel
+- **デプロイ**: AWS Amplify Hosting（WEB_COMPUTE）
 - **バッチ**: GitHub Actions（スケジュール実行）
 
 ### DB 接続

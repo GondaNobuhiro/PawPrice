@@ -13,10 +13,6 @@ jobs:
       group: yahoo-discover
       cancel-in-progress: false
 
-    defaults:
-      run:
-        working-directory: frontend
-
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       YAHOO_APP_ID: ${{ secrets.YAHOO_APP_ID }}

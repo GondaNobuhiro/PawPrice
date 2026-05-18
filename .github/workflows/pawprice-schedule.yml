@@ -19,10 +19,6 @@ jobs:
       contains(fromJSON('["0 23 * * *","0 5 * * *","0 12 * * *"]'), github.event.schedule)
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: frontend
-
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       RAKUTEN_APPLICATION_ID: ${{ secrets.RAKUTEN_APPLICATION_ID }}
@@ -67,10 +63,6 @@ jobs:
     concurrency:
       group: yahoo-update
       cancel-in-progress: false
-
-    defaults:
-      run:
-        working-directory: frontend
 
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
