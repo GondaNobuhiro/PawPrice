@@ -4,13 +4,12 @@ export default function robots(): MetadataRoute.Robots {
     return {
         rules: [
             {
-                userAgent: ['GPTBot', 'ClaudeBot', 'PerplexityBot', 'CCBot'],
-                disallow: ['/'],
+                userAgent: '*',
+                disallow: ['/api/', '/watchlists', '/notifications'],
             },
             {
-                userAgent: '*',
-                allow: ['/', '/products/'],
-                disallow: ['/api/', '/watchlists', '/notifications'],
+                userAgent: ['GPTBot', 'ClaudeBot', 'PerplexityBot', 'CCBot'],
+                disallow: ['/'],
             },
         ],
         sitemap: 'https://paw-price.com/sitemap.xml',
