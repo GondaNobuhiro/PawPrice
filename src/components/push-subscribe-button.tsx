@@ -16,7 +16,9 @@ function detectEnv(): Env {
     const isIOS = /iP(hone|ad|od)/.test(ua);
     if (!isIOS) return 'PushManager' in window ? 'supported' : 'unsupported';
     if (/CriOS|FxiOS|EdgiOS/.test(ua)) return 'ios-chrome';
-    const isStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    const isStandalone =
+        (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+        window.matchMedia('(display-mode: standalone)').matches;
     return isStandalone ? 'ios-safari-standalone' : 'ios-safari';
 }
 
