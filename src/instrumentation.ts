@@ -1,18 +1,35 @@
-import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
+import { SpanStatusCode } from '@opentelemetry/api';
+
+// Next.js スパンから HTTP ステータスコードを推定する
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function inferStatus(span: any): number | null {
+    const attrs = span.attributes ?? {};
+    const spanType: string = attrs['next.span_type'] ?? '';
+
+    // ページレンダリング スパン（Server Components）
+    if (spanType === 'AppRender.getBodyResult') {
+        if (span.status?.code === SpanStatusCode.ERROR) return 500;
+        const route: string = attrs['next.route'] ?? '';
+        return route.startsWith('/_not') ? 404 : 200;
+    }
+
+    // API ルートハンドラー スパン（http.status_code を持つ場合）
+    if (typeof attrs['http.status_code'] === 'number') {
+        return attrs['http.status_code'];
+    }
+
+    return null;
+}
 
 function createAccessLogExporter() {
     return {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         export(spans: any[], done: (result: { code: number }) => void) {
             for (const span of spans) {
-                if (span.kind !== SpanKind.SERVER) continue;
-
-                const status: number | undefined =
-                    span.attributes['http.status_code'] ??
-                    span.attributes['http.response.status_code'];
-
+                const status = inferStatus(span);
                 if (!status) continue;
 
+                const attrs = span.attributes ?? {};
                 const durationMs = Math.round(
                     ((span.endTime[0] - span.startTime[0]) * 1e9 +
                         (span.endTime[1] - span.startTime[1])) / 1e6,
@@ -21,12 +38,8 @@ function createAccessLogExporter() {
                 console.log(JSON.stringify({
                     type: 'access',
                     status,
-                    method:
-                        span.attributes['http.method'] ??
-                        span.attributes['http.request.method'],
-                    path:
-                        span.attributes['http.target'] ??
-                        span.attributes['url.path'],
+                    method: attrs['http.method'] ?? '-',
+                    path: attrs['next.route'] ?? attrs['http.target'] ?? '-',
                     durationMs,
                     ...(span.status?.code === SpanStatusCode.ERROR
                         ? { error: span.status.message }
@@ -56,18 +69,10 @@ export async function register() {
     if (process.env.NEXT_RUNTIME === 'edge') return;
 
     const { NodeSDK } = await import('@opentelemetry/sdk-node');
-    const { HttpInstrumentation } = await import('@opentelemetry/instrumentation-http');
 
     const sdk = new NodeSDK({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         spanProcessors: [new ImmediateSpanProcessor(createAccessLogExporter()) as any],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        instrumentations: [new HttpInstrumentation({
-            ignoreIncomingRequestHook: (req: any) => {
-                const url: string = req.url ?? '';
-                return url.startsWith('/_next/') || url === '/favicon.ico';
-            },
-        })],
     });
 
     sdk.start();
