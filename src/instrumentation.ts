@@ -1,5 +1,7 @@
 import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
 
+console.log('[otel] instrumentation module loaded');
+
 function createAccessLogExporter() {
     return {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,7 +50,7 @@ export async function register() {
     sdk.start();
     console.log('[otel] NodeSDK started');
 
-    // テスト用スパンを作成して onEnd が動作するか確認
+    // テスト用スパンで onEnd 動作を確認
     const { trace } = await import('@opentelemetry/api');
     const tracer = trace.getTracer('paw-price');
     const testSpan = tracer.startSpan('test', { kind: SpanKind.SERVER });
