@@ -5,34 +5,13 @@ function createAccessLogExporter() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         export(spans: any[], done: (result: { code: number }) => void) {
             for (const span of spans) {
-                if (span.kind !== SpanKind.SERVER) continue;
-
-                const status: number | undefined =
-                    span.attributes['http.status_code'] ??
-                    span.attributes['http.response.status_code'] ??
-                    span.attributes['http.statusCode'];
-
-                if (!status) continue;
-
-                const durationMs = Math.round(
-                    ((span.endTime[0] - span.startTime[0]) * 1e9 +
-                        (span.endTime[1] - span.startTime[1])) / 1e6,
-                );
-
+                // デバッグ: フィルタなしで全スパンを出力
                 console.log(JSON.stringify({
-                    type: 'access',
-                    status,
-                    method:
-                        span.attributes['http.method'] ??
-                        span.attributes['http.request.method'],
-                    path:
-                        span.attributes['http.target'] ??
-                        span.attributes['url.path'] ??
-                        span.attributes['http.url'],
-                    durationMs,
-                    ...(span.status?.code === SpanStatusCode.ERROR
-                        ? { error: span.status.message }
-                        : {}),
+                    debug: 'span',
+                    kind: span.kind,
+                    name: span.name,
+                    status: span.status,
+                    attrs: span.attributes,
                 }));
             }
             done({ code: 0 });
@@ -43,13 +22,12 @@ function createAccessLogExporter() {
 
 type Exporter = ReturnType<typeof createAccessLogExporter>;
 
-// BatchSpanProcessor はタイマーで一括送信するため Lambda 終了前に出力されない。
-// Span 完了直後に即座にエクスポートする独自プロセッサーを使用する。
 class ImmediateSpanProcessor {
     constructor(private readonly exporter: Exporter) {}
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     onStart(_span: unknown, _ctx: unknown) {}
     onEnd(span: unknown) {
+        console.log('[otel] onEnd called');
         this.exporter.export([span], () => {});
     }
     forceFlush(): Promise<void> { return Promise.resolve(); }
@@ -57,6 +35,7 @@ class ImmediateSpanProcessor {
 }
 
 export async function register() {
+    console.log('[otel] register called, NEXT_RUNTIME:', process.env.NEXT_RUNTIME);
     if (process.env.NEXT_RUNTIME === 'edge') return;
 
     const { NodeSDK } = await import('@opentelemetry/sdk-node');
@@ -67,4 +46,15 @@ export async function register() {
     });
 
     sdk.start();
+    console.log('[otel] NodeSDK started');
+
+    // テスト用スパンを作成して onEnd が動作するか確認
+    const { trace } = await import('@opentelemetry/api');
+    const tracer = trace.getTracer('paw-price');
+    const testSpan = tracer.startSpan('test', { kind: SpanKind.SERVER });
+    testSpan.setAttribute('http.status_code', 0);
+    testSpan.setAttribute('http.method', 'INIT');
+    testSpan.setAttribute('http.target', '/__init__');
+    testSpan.setStatus({ code: SpanStatusCode.OK });
+    testSpan.end();
 }
