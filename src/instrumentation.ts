@@ -40,6 +40,8 @@ function createAccessLogExporter() {
                     status,
                     method: attrs['http.method'] ?? '-',
                     path: attrs['next.route'] ?? attrs['http.target'] ?? '-',
+                    ip: attrs['net.peer.ip'] ?? '-',
+                    ua: attrs['http.user_agent'] ?? '-',
                     durationMs,
                     ...(span.status?.code === SpanStatusCode.ERROR
                         ? { error: span.status.message }
