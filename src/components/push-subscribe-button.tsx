@@ -16,10 +16,8 @@ function detectEnv(): Env {
     const isIOS = /iP(hone|ad|od)/.test(ua);
     if (!isIOS) return 'PushManager' in window ? 'supported' : 'unsupported';
     if (/CriOS|FxiOS|EdgiOS/.test(ua)) return 'ios-chrome';
-    const isStandalone =
-        (navigator as Navigator & { standalone?: boolean }).standalone === true ||
-        window.matchMedia('(display-mode: standalone)').matches;
-    return isStandalone ? 'ios-safari-standalone' : 'ios-safari';
+    // iOS では PushManager はスタンドアロンモード(iOS 16.4+)でのみ利用可能
+    return 'PushManager' in window ? 'ios-safari-standalone' : 'ios-safari';
 }
 
 // ---- ガイダンス用SVGアイコン ----
