@@ -9,7 +9,8 @@ function createAccessLogExporter() {
 
                 const status: number | undefined =
                     span.attributes['http.status_code'] ??
-                    span.attributes['http.response.status_code'];
+                    span.attributes['http.response.status_code'] ??
+                    span.attributes['http.statusCode'];
 
                 if (!status) continue;
 
@@ -21,8 +22,13 @@ function createAccessLogExporter() {
                 console.log(JSON.stringify({
                     type: 'access',
                     status,
-                    method: span.attributes['http.method'],
-                    path: span.attributes['http.target'] ?? span.attributes['url.path'],
+                    method:
+                        span.attributes['http.method'] ??
+                        span.attributes['http.request.method'],
+                    path:
+                        span.attributes['http.target'] ??
+                        span.attributes['url.path'] ??
+                        span.attributes['http.url'],
                     durationMs,
                     ...(span.status?.code === SpanStatusCode.ERROR
                         ? { error: span.status.message }
@@ -35,14 +41,29 @@ function createAccessLogExporter() {
     };
 }
 
+type Exporter = ReturnType<typeof createAccessLogExporter>;
+
+// BatchSpanProcessor はタイマーで一括送信するため Lambda 終了前に出力されない。
+// Span 完了直後に即座にエクスポートする独自プロセッサーを使用する。
+class ImmediateSpanProcessor {
+    constructor(private readonly exporter: Exporter) {}
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    onStart(_span: unknown, _ctx: unknown) {}
+    onEnd(span: unknown) {
+        this.exporter.export([span], () => {});
+    }
+    forceFlush(): Promise<void> { return Promise.resolve(); }
+    shutdown(): Promise<void> { return this.exporter.shutdown(); }
+}
+
 export async function register() {
-    if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+    if (process.env.NEXT_RUNTIME === 'edge') return;
 
     const { NodeSDK } = await import('@opentelemetry/sdk-node');
 
     const sdk = new NodeSDK({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        traceExporter: createAccessLogExporter() as any,
+        spanProcessors: [new ImmediateSpanProcessor(createAccessLogExporter()) as any],
     });
 
     sdk.start();
