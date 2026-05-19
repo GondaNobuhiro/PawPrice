@@ -102,7 +102,6 @@ export default function middleware(request: NextRequest) {
         });
     }
 
-    log(0, request, ip); // 0 = Lambda に処理を渡した（実際のステータスは Lambda が決定）
     return response;
 }
 
