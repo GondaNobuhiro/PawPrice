@@ -9,15 +9,22 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     return Uint8Array.from(rawData, (c) => c.charCodeAt(0));
 }
 
-type Env = 'ios-chrome' | 'ios-safari-standalone' | 'ios-safari' | 'supported' | 'unsupported';
+type Env = 'ios-chrome' | 'ios-safari-standalone' | 'ios-safari' | 'ios-old' | 'supported' | 'unsupported';
 
 function detectEnv(): Env {
     const ua = navigator.userAgent;
     const isIOS = /iP(hone|ad|od)/.test(ua);
     if (!isIOS) return 'PushManager' in window ? 'supported' : 'unsupported';
     if (/CriOS|FxiOS|EdgiOS/.test(ua)) return 'ios-chrome';
-    // iOS では PushManager はスタンドアロンモード(iOS 16.4+)でのみ利用可能
-    return 'PushManager' in window ? 'ios-safari-standalone' : 'ios-safari';
+
+    // スタンドアロン判定（navigator.standalone と matchMedia を両方チェック）
+    const isStandalone =
+        (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+        window.matchMedia('(display-mode: standalone)').matches;
+
+    if (!isStandalone) return 'ios-safari'; // ホーム画面から開いていない
+    // スタンドアロンだが iOS 16.4 未満で PushManager 非対応
+    return 'PushManager' in window ? 'ios-safari-standalone' : 'ios-old';
 }
 
 // ---- ガイダンス用SVGアイコン ----
@@ -100,7 +107,7 @@ function StepCard({ step, icon, text }: { step: number; icon: React.ReactNode; t
 
 export default function PushSubscribeButton() {
     const [status, setStatus] = useState<'checking' | 'idle' | 'loading' | 'done' | 'unsubscribing'>('checking');
-    const [guide, setGuide] = useState<'ios-chrome' | 'ios-safari' | 'unsupported' | null>(null);
+    const [guide, setGuide] = useState<'ios-chrome' | 'ios-safari' | 'ios-old' | 'unsupported' | null>(null);
 
     // 既存のSubscriptionを確認して状態を復元
     useEffect(() => {
@@ -124,6 +131,7 @@ export default function PushSubscribeButton() {
         const env = detectEnv();
         if (env === 'ios-chrome') { setGuide('ios-chrome'); return; }
         if (env === 'ios-safari') { setGuide('ios-safari'); return; }
+        if (env === 'ios-old') { setGuide('ios-old'); return; }
         if (env === 'unsupported') { setGuide('unsupported'); return; }
 
         try {
@@ -233,6 +241,15 @@ export default function PushSubscribeButton() {
                         <StepCard step={4} icon={<IconBell />} text='「通知を有効化」をタップ' />
                     </div>
                     <button onClick={() => setGuide(null)} className="mt-4 text-xs text-[#9a6b3d] underline">閉じる</button>
+                </div>
+            )}
+
+            {/* iOS バージョン不足 */}
+            {guide === 'ios-old' && (
+                <div className="mt-3 w-72 rounded-2xl border border-[#eadfce] bg-[#fffaf3] p-4 text-sm text-[#7a6657]">
+                    <p className="font-semibold text-[#4b3425]">iOS 16.4以上が必要です</p>
+                    <p className="mt-1">設定 → 一般 → ソフトウェア・アップデートからiOSをアップデートしてください。</p>
+                    <button onClick={() => setGuide(null)} className="mt-3 text-xs text-[#9a6b3d] underline">閉じる</button>
                 </div>
             )}
 
