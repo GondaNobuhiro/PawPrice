@@ -160,10 +160,7 @@ export default function PushSubscribeButton() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(subscription),
             });
-            if (!res.ok) {
-                const body = await res.text().catch(() => '');
-                throw new Error(`購読保存に失敗しました: ${res.status} url=${res.url} body=${body.substring(0, 200)}`);
-            }
+            if (!res.ok) throw new Error(`購読保存に失敗しました: ${res.status}`);
 
             setStatus('done');
         } catch (error) {
