@@ -41,8 +41,14 @@ const nextConfig: NextConfig = {
             { key: 'Content-Security-Policy', value: csp },
         ];
 
+        const manifestHeader = {
+            source: '/manifest.json',
+            headers: [{ key: 'Content-Type', value: 'application/manifest+json' }],
+        };
+
         if (process.env.NODE_ENV !== 'production') {
             return [
+                manifestHeader,
                 {
                     source: '/(.*)',
                     headers: [
@@ -53,6 +59,7 @@ const nextConfig: NextConfig = {
             ];
         }
         return [
+            manifestHeader,
             {
                 source: '/(.*)',
                 headers: securityHeaders,
