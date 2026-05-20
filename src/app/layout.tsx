@@ -72,6 +72,7 @@ export const metadata: Metadata = {
     },
     other: {
         'theme-color': '#EA580C',
+        'apple-mobile-web-app-capable': 'yes',
     },
 };
 
