@@ -233,13 +233,17 @@ export default function PushSubscribeButton() {
             {/* iOS Safari（非PWA）ガイダンス */}
             {guide === 'ios-safari' && (
                 <div className="mt-3 w-80 rounded-2xl border border-[#eadfce] bg-[#fffaf3] p-4 shadow-sm">
-                    <p className="mb-4 font-semibold text-[#4b3425]">ホーム画面への追加が必要です</p>
+                    <p className="mb-4 font-semibold text-[#4b3425]">ホーム画面のアイコンから開いてください</p>
+                    <p className="mb-3 text-xs text-[#7a6657]">既にアイコンを追加済みの場合は、一度削除して再度追加してください。</p>
                     <div className="space-y-4">
-                        <StepCard step={1} icon={<IconShare />} text='画面下の「共有」ボタンをタップ' />
-                        <StepCard step={2} icon={<IconAddHome />} text='「ホーム画面に追加」を選択' />
+                        <StepCard step={1} icon={<IconShare />} text='Safari の画面下「共有」ボタンをタップ' />
+                        <StepCard step={2} icon={<IconAddHome />} text='「ホーム画面に追加」を選択（ブックマークではなく）' />
                         <StepCard step={3} icon={<IconHomeScreen />} text="ホーム画面のアイコンからアプリを起動" />
                         <StepCard step={4} icon={<IconBell />} text='「通知を有効化」をタップ' />
                     </div>
+                    <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        ⚠️ Safari で開いているこのページからは設定できません。ホーム画面アイコンから開き直してください。
+                    </p>
                     <button onClick={() => setGuide(null)} className="mt-4 text-xs text-[#9a6b3d] underline">閉じる</button>
                 </div>
             )}
