@@ -10,7 +10,7 @@ import PetTypeFilter from '@/src/components/pet-type-filter';
 import Pagination from '@/src/components/pagination';
 import { getCategories } from '@/src/app/lib/categories';
 import { getProducts } from '@/src/app/lib/products';
-import { getSessionUserId } from '@/src/app/lib/session';
+import { getOptionalSessionUserId } from '@/src/app/lib/session';
 import { prisma } from '@/src/app/lib/prisma';
 
 const BASE_URL = 'https://paw-price.com';
@@ -84,8 +84,8 @@ export default async function Home({ searchParams }: Props) {
     const petType = params.petType ?? '';
     const page = params.page ?? '1';
 
-    const userId = await getSessionUserId();
-    const [productsResponse, categories] = await Promise.all([
+    const [userId, productsResponse, categories] = await Promise.all([
+        getOptionalSessionUserId(),
         getProducts({ q, categoryId, sort, petType, page }),
         getCategories(),
     ]);
@@ -103,7 +103,7 @@ export default async function Home({ searchParams }: Props) {
     const pagination = productsResponse.pagination;
 
     const watchedProductIds = new Set(
-        products.length > 0
+        userId && products.length > 0
             ? (await prisma.watchlist.findMany({
                   where: { userId, productId: { in: products.map((p) => BigInt(p.id)) } },
                   select: { productId: true },

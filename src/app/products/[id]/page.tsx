@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 import WatchButton from '@/src/components/watch-button';
 import OfferCard from '@/src/components/offer-card';
 import { getProduct } from '@/src/app/lib/products';
-import { getSessionUserId } from '@/src/app/lib/session';
+import { getOptionalSessionUserId } from '@/src/app/lib/session';
 import { prisma } from '@/src/app/lib/prisma';
 
 function petTypeLabel(petType: string): string {
@@ -57,15 +57,19 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
 
 export default async function ProductDetailPage({ params, searchParams }: Props) {
     const [{ id }, { from }] = await Promise.all([params, searchParams]);
-    const userId = await getSessionUserId();
-    const product = await getProduct(id);
+    const [userId, product] = await Promise.all([
+        getOptionalSessionUserId(),
+        getProduct(id),
+    ]);
     if (!product) notFound();
     const lowestOffer = product.offers[0] ?? null;
 
-    const watchEntry = await prisma.watchlist.findUnique({
-        where: { userId_productId: { userId, productId: BigInt(product.id) } },
-        select: { productId: true },
-    });
+    const watchEntry = userId
+        ? await prisma.watchlist.findUnique({
+              where: { userId_productId: { userId, productId: BigInt(product.id) } },
+              select: { productId: true },
+          })
+        : null;
     const initialWatched = !!watchEntry;
     const backHref = from ? decodeURIComponent(from) : '/';
 

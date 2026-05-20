@@ -35,3 +35,25 @@ async function resolveSessionUserId(): Promise<bigint> {
 
 // 同一リクエスト内で複数回呼ばれてもDBアクセスは1回
 export const getSessionUserId = cache(resolveSessionUserId);
+
+// 公開ページ用: セッションなし（クローラー等）の場合は null を返し、リダイレクトしない
+async function resolveOptionalSessionUserId(): Promise<bigint | null> {
+    const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
+    const sessionId =
+        cookieStore.get('session_id')?.value ?? headerStore.get('x-session-id');
+    if (!sessionId) return null;
+
+    const cached = sessionCache.get(sessionId);
+    if (cached !== undefined) return cached;
+
+    const existing = await prisma.user.findUnique({
+        where: { sessionId },
+        select: { id: true },
+    });
+    if (!existing) return null;
+
+    sessionCache.set(sessionId, existing.id);
+    return existing.id;
+}
+
+export const getOptionalSessionUserId = cache(resolveOptionalSessionUserId);
