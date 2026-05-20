@@ -65,6 +65,11 @@ export const metadata: Metadata = {
         apple: '/icon.png',
     },
     manifest: '/manifest.json',
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: 'default',
+        title: 'PawPrice',
+    },
     other: {
         'theme-color': '#EA580C',
     },
