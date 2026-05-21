@@ -40,6 +40,7 @@ const BOT_UA_PATTERNS = [
     /CCBot/i,
     /Amazonbot/i,
     /anthropic-ai/i,
+    /Claude-SearchBot/i,
     /cohere-ai/i,
 ];
 

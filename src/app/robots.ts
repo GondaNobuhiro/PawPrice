@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
                 disallow: ['/api/', '/watchlists', '/notifications'],
             },
             {
-                userAgent: ['GPTBot', 'ClaudeBot', 'PerplexityBot', 'CCBot'],
+                userAgent: ['GPTBot', 'ClaudeBot', 'Claude-SearchBot', 'PerplexityBot', 'CCBot'],
                 disallow: ['/'],
             },
         ],
