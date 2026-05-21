@@ -62,6 +62,13 @@ export default function middleware(request: NextRequest) {
         'unknown';
 
     const ua = request.headers.get('user-agent') ?? '';
+
+    // UA未設定は正規ブラウザでは発生しないためブロック
+    if (!ua) {
+        log(403, request, ip);
+        return new NextResponse(null, { status: 403 });
+    }
+
     if (BOT_UA_PATTERNS.some((pattern) => pattern.test(ua))) {
         log(403, request, ip);
         return new NextResponse(null, { status: 403 });
