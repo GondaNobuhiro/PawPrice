@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import { Noto_Sans_JP, DM_Serif_Display } from 'next/font/google';
-import { headers } from 'next/headers';
-import { trace } from '@opentelemetry/api';
 import './globals.css';
 import AppHeader from '@/src/components/app-header';
 import GoogleAnalytics from '@/src/components/google-analytics';
@@ -81,15 +79,6 @@ export default async function RootLayout({
                                    }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // await より前にスパンを取得（await 後は RSC の非同期コンテキスト切替でスパンが null になる）
-  const span = trace.getActiveSpan();
-  const h = await headers();
-  if (span) {
-      span.setAttribute('http.user_agent', (h.get('user-agent') ?? '-').substring(0, 150));
-      span.setAttribute('net.peer.ip', h.get('x-forwarded-for')?.split(',')[0].trim() ?? '-');
-      span.setAttribute('http.method', h.get('x-forwarded-method') ?? 'GET');
-  }
-
   return (
       <html lang="ja">
       <body className={`${notoSansJP.className} ${dmSerifDisplay.variable} bg-[#FAF8F4] text-[#1C1917]`}>
