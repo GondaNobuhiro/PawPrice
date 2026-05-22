@@ -81,9 +81,9 @@ export default async function RootLayout({
                                    }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // アクティブな OTel スパン（AppRender.getBodyResult）に UA/IP を付与
-  const h = await headers();
+  // await より前にスパンを取得（await 後は RSC の非同期コンテキスト切替でスパンが null になる）
   const span = trace.getActiveSpan();
+  const h = await headers();
   if (span) {
       span.setAttribute('http.user_agent', (h.get('user-agent') ?? '-').substring(0, 150));
       span.setAttribute('net.peer.ip', h.get('x-forwarded-for')?.split(',')[0].trim() ?? '-');
