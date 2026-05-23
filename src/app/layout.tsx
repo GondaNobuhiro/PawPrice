@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Noto_Sans_JP, DM_Serif_Display } from 'next/font/google';
+import { headers } from 'next/headers';
 import './globals.css';
 import AppHeader from '@/src/components/app-header';
 import GoogleAnalytics from '@/src/components/google-analytics';
@@ -79,6 +80,14 @@ export default async function RootLayout({
                                    }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const h = await headers();
+  console.log(JSON.stringify({
+      type: 'access',
+      path: h.get('x-pathname') ?? '-',
+      ip:   h.get('x-forwarded-for')?.split(',')[0].trim() ?? '-',
+      ua:   (h.get('user-agent') ?? '-').substring(0, 150),
+  }));
+
   return (
       <html lang="ja">
       <body className={`${notoSansJP.className} ${dmSerifDisplay.variable} bg-[#FAF8F4] text-[#1C1917]`}>
