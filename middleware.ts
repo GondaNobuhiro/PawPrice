@@ -42,6 +42,9 @@ const BOT_UA_PATTERNS = [
     /anthropic-ai/i,
     /Claude-SearchBot/i,
     /cohere-ai/i,
+    // SEO分析ツールの商業クローラー
+    /SerpStatBot/i,
+    /MJ12bot/i,
 ];
 
 function log(status: number, request: NextRequest, ip: string) {
