@@ -29,9 +29,9 @@ export type ProductItem = {
         isPriceDown: boolean;
         latestEffectivePrice: number | null;
         historicalMinPrice: number | null;
-        previousEffectivePrice: null;
-        diffAmount: null;
-        diffPercent: null;
+        previousEffectivePrice: number | null;
+        diffAmount: number | null;
+        diffPercent: number | null;
     };
 };
 
@@ -273,6 +273,11 @@ async function fetchProducts(params: {
         const histories = rawOffer?.priceHistories ?? [];
         const isPriceDown =
             histories.length >= 2 && histories[0].effectivePrice < histories[1].effectivePrice;
+        const prevPrice = isPriceDown ? histories[1].effectivePrice : null;
+        const diffAmount = isPriceDown ? histories[1].effectivePrice - histories[0].effectivePrice : null;
+        const diffPercent = isPriceDown && histories[1].effectivePrice > 0
+            ? Math.round((histories[1].effectivePrice - histories[0].effectivePrice) / histories[1].effectivePrice * 1000) / 10
+            : null;
 
         return {
             id: product.id.toString(),
@@ -289,9 +294,9 @@ async function fetchProducts(params: {
                 isPriceDown,
                 latestEffectivePrice: lowestOffer?.effectivePrice ?? null,
                 historicalMinPrice: historicalMinMap.get(product.id.toString()) ?? lowestOffer?.effectivePrice ?? null,
-                previousEffectivePrice: null,
-                diffAmount: null,
-                diffPercent: null,
+                previousEffectivePrice: prevPrice,
+                diffAmount,
+                diffPercent,
             },
         };
     });

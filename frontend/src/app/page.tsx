@@ -126,14 +126,8 @@ export default async function Home({ searchParams }: Props) {
                             </div>
 
                             <h1 className="mb-4 text-4xl font-bold leading-tight tracking-tight text-[#0c4a6e] md:text-5xl">
-                                ペット用品の<br />
-                                <span className="text-[#EA580C]">最安値</span>を比較
+                                犬・猫用品の<span className="text-[#EA580C]">最安値</span>を比較
                             </h1>
-
-                            <p className="mb-7 text-sm leading-7 text-[#0369a1]">
-                                犬・猫用品をショップ横断で比較。ポイント還元込みの実質価格と<br className="hidden md:block" />
-                                価格推移をいつでもチェックできます。
-                            </p>
 
                             <div className="mb-8 grid grid-cols-2 gap-2 sm:grid-cols-4">
                                 {[
@@ -312,6 +306,9 @@ export default async function Home({ searchParams }: Props) {
                                                     <span className="animate-badge-pop inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-600 ring-1 ring-sky-200">
                                                         <img src="/image/icon/price-drops.jpg" alt="" width={14} height={14} className="rounded-sm object-contain" />
                                                         値下がり中
+                                                        {product.priceSummary.diffPercent != null && (
+                                                            <span className="text-rose-500">−{product.priceSummary.diffPercent}%</span>
+                                                        )}
                                                     </span>
                                                 )}
                                             </div>
@@ -340,6 +337,11 @@ export default async function Home({ searchParams }: Props) {
                                                         <div className="font-display mt-0.5 text-2xl text-[#92400E]">
                                                             ¥{product.priceSummary.latestEffectivePrice.toLocaleString()}
                                                         </div>
+                                                        {product.priceSummary.previousEffectivePrice != null && (
+                                                            <div className="mt-0.5 text-[11px] text-[#A8A29E]">
+                                                                前回 ¥{product.priceSummary.previousEffectivePrice.toLocaleString()}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                                 {product.priceSummary?.historicalMinPrice != null && (
