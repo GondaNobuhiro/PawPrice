@@ -170,7 +170,10 @@ async function fetchProducts(params: {
                     JOIN cheapest c ON c.offer_id = ph.product_offer_id
                 ),
                 dropped_offers AS (
-                    SELECT offer_id
+                    SELECT
+                        offer_id,
+                        MAX(CASE WHEN rn = 1 THEN effective_price END) AS current_price,
+                        MAX(CASE WHEN rn = 2 THEN effective_price END) AS prev_price
                     FROM ranked
                     WHERE rn <= 2
                     GROUP BY offer_id
@@ -178,12 +181,13 @@ async function fetchProducts(params: {
                        AND MAX(CASE WHEN rn = 1 THEN effective_price END)
                          < MAX(CASE WHEN rn = 2 THEN effective_price END)
                 )
-                SELECT DISTINCT o.product_id AS id
+                SELECT
+                    o.product_id AS id
                 FROM product_offers o
                 JOIN dropped_offers d ON d.offer_id = o.id
                 WHERE o.is_active = true
                   AND o.product_id = ANY(${ids}::bigint[])
-                ORDER BY id DESC
+                ORDER BY (d.prev_price - d.current_price)::numeric / NULLIF(d.prev_price, 0) DESC
                 LIMIT ${PAGE_SIZE} OFFSET ${(currentPage - 1) * PAGE_SIZE}
             `;
             orderedIds = rows.map((r) => r.id);
