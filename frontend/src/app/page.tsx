@@ -306,9 +306,6 @@ export default async function Home({ searchParams }: Props) {
                                                     <span className="animate-badge-pop inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-600 ring-1 ring-sky-200">
                                                         <img src="/image/icon/price-drops.jpg" alt="" width={14} height={14} className="rounded-sm object-contain" />
                                                         値下がり中
-                                                        {product.priceSummary.diffPercent != null && (
-                                                            <span className="text-rose-500">−{product.priceSummary.diffPercent}%</span>
-                                                        )}
                                                     </span>
                                                 )}
                                             </div>
@@ -334,12 +331,19 @@ export default async function Home({ searchParams }: Props) {
                                                         <div className="text-[11px] font-medium uppercase tracking-wider text-[#A8A29E]">
                                                             現在の最安値
                                                         </div>
-                                                        <div className="font-display mt-0.5 text-2xl text-[#92400E]">
-                                                            ¥{product.priceSummary.latestEffectivePrice.toLocaleString()}
+                                                        <div className="mt-0.5 flex items-end gap-2">
+                                                            <span className="font-display text-2xl text-[#92400E]">
+                                                                ¥{product.priceSummary.latestEffectivePrice.toLocaleString()}
+                                                            </span>
+                                                            {product.priceSummary.previousEffectivePrice != null && (
+                                                                <span className="mb-0.5 text-sm text-[#A8A29E] line-through">
+                                                                    ¥{product.priceSummary.previousEffectivePrice.toLocaleString()}
+                                                                </span>
+                                                            )}
                                                         </div>
-                                                        {product.priceSummary.previousEffectivePrice != null && (
-                                                            <div className="mt-0.5 text-[11px] text-[#A8A29E]">
-                                                                前回 ¥{product.priceSummary.previousEffectivePrice.toLocaleString()}
+                                                        {product.priceSummary.diffPercent != null && product.priceSummary.diffAmount != null && (
+                                                            <div className="mt-1 text-xs font-semibold text-rose-500">
+                                                                前回より ¥{product.priceSummary.diffAmount.toLocaleString()} (−{product.priceSummary.diffPercent}%) 値下がり
                                                             </div>
                                                         )}
                                                     </div>
