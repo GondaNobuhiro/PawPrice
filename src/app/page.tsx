@@ -138,14 +138,8 @@ export default async function Home({ searchParams }: Props) {
                             </div>
 
                             <h1 className="mb-4 text-4xl font-bold leading-tight tracking-tight text-[#0c4a6e] md:text-5xl">
-                                ペット用品の<br />
-                                <span className="text-[#EA580C]">最安値</span>を比較
+                                犬・猫用品の<span className="text-[#EA580C]">最安値</span>を比較
                             </h1>
-
-                            <p className="mb-7 text-sm leading-7 text-[#0369a1]">
-                                犬・猫用品をショップ横断で比較。ポイント還元込みの実質価格と<br className="hidden md:block" />
-                                価格推移をいつでもチェックできます。
-                            </p>
 
                             <div className="mb-8 grid grid-cols-2 gap-2 sm:grid-cols-4">
                                 {[
@@ -351,9 +345,21 @@ export default async function Home({ searchParams }: Props) {
                                                         <div className="text-[11px] font-medium uppercase tracking-wider text-[#A8A29E]">
                                                             現在の最安値
                                                         </div>
-                                                        <div className="font-display mt-0.5 text-2xl text-[#92400E]">
-                                                            ¥{product.priceSummary.latestEffectivePrice.toLocaleString()}
+                                                        <div className="mt-0.5 flex items-end gap-2">
+                                                            <span className="font-display text-2xl text-[#92400E]">
+                                                                ¥{product.priceSummary.latestEffectivePrice.toLocaleString()}
+                                                            </span>
+                                                            {product.priceSummary.previousEffectivePrice != null && (
+                                                                <span className="mb-0.5 text-sm text-[#A8A29E] line-through">
+                                                                    ¥{product.priceSummary.previousEffectivePrice.toLocaleString()}
+                                                                </span>
+                                                            )}
                                                         </div>
+                                                        {product.priceSummary.diffPercent != null && product.priceSummary.diffAmount != null && (
+                                                            <div className="mt-1 text-xs font-semibold text-rose-500">
+                                                                前回より ¥{product.priceSummary.diffAmount.toLocaleString()} (−{product.priceSummary.diffPercent}%) 値下がり
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                                 {product.priceSummary?.historicalMinPrice != null && (

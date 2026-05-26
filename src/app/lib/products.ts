@@ -29,9 +29,9 @@ export type ProductItem = {
         isPriceDown: boolean;
         latestEffectivePrice: number | null;
         historicalMinPrice: number | null;
-        previousEffectivePrice: null;
-        diffAmount: null;
-        diffPercent: null;
+        previousEffectivePrice: number | null;
+        diffAmount: number | null;
+        diffPercent: number | null;
     };
 };
 
@@ -170,7 +170,10 @@ async function fetchProducts(params: {
                     JOIN cheapest c ON c.offer_id = ph.product_offer_id
                 ),
                 dropped_offers AS (
-                    SELECT offer_id
+                    SELECT
+                        offer_id,
+                        MAX(CASE WHEN rn = 1 THEN effective_price END) AS current_price,
+                        MAX(CASE WHEN rn = 2 THEN effective_price END) AS prev_price
                     FROM ranked
                     WHERE rn <= 2
                     GROUP BY offer_id
@@ -178,12 +181,13 @@ async function fetchProducts(params: {
                        AND MAX(CASE WHEN rn = 1 THEN effective_price END)
                          < MAX(CASE WHEN rn = 2 THEN effective_price END)
                 )
-                SELECT DISTINCT o.product_id AS id
+                SELECT
+                    o.product_id AS id
                 FROM product_offers o
                 JOIN dropped_offers d ON d.offer_id = o.id
                 WHERE o.is_active = true
                   AND o.product_id = ANY(${ids}::bigint[])
-                ORDER BY id DESC
+                ORDER BY (d.prev_price - d.current_price)::numeric / NULLIF(d.prev_price, 0) DESC
                 LIMIT ${PAGE_SIZE} OFFSET ${(currentPage - 1) * PAGE_SIZE}
             `;
             orderedIds = rows.map((r) => r.id);
@@ -269,6 +273,11 @@ async function fetchProducts(params: {
         const histories = rawOffer?.priceHistories ?? [];
         const isPriceDown =
             histories.length >= 2 && histories[0].effectivePrice < histories[1].effectivePrice;
+        const prevPrice = isPriceDown ? histories[1].effectivePrice : null;
+        const diffAmount = isPriceDown ? histories[1].effectivePrice - histories[0].effectivePrice : null;
+        const diffPercent = isPriceDown && histories[1].effectivePrice > 0
+            ? Math.round((histories[1].effectivePrice - histories[0].effectivePrice) / histories[1].effectivePrice * 1000) / 10
+            : null;
 
         return {
             id: product.id.toString(),
@@ -285,9 +294,9 @@ async function fetchProducts(params: {
                 isPriceDown,
                 latestEffectivePrice: lowestOffer?.effectivePrice ?? null,
                 historicalMinPrice: historicalMinMap.get(product.id.toString()) ?? lowestOffer?.effectivePrice ?? null,
-                previousEffectivePrice: null,
-                diffAmount: null,
-                diffPercent: null,
+                previousEffectivePrice: prevPrice,
+                diffAmount,
+                diffPercent,
             },
         };
     });
