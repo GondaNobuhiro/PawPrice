@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache';
+import { Prisma } from '@prisma/client';
 import { prisma } from './prisma';
 
 const PAGE_SIZE = 20;
@@ -91,43 +92,8 @@ async function fetchProducts(params: {
 
     let totalCount: number;
     if (sort === 'price_down') {
-        const matchingIds = await prisma.product.findMany({ where, select: { id: true } });
-        if (matchingIds.length > 0) {
-            const ids = matchingIds.map((p) => p.id);
-            const rows = await prisma.$queryRaw<{ count: bigint }[]>`
-                WITH cheapest AS (
-                    SELECT DISTINCT ON (product_id) id AS offer_id
-                    FROM product_offers
-                    WHERE is_active = true AND product_id = ANY(${ids}::bigint[])
-                    ORDER BY product_id, effective_price ASC
-                ),
-                ranked AS (
-                    SELECT
-                        ph.product_offer_id AS offer_id,
-                        ph.effective_price,
-                        ROW_NUMBER() OVER (PARTITION BY ph.product_offer_id ORDER BY ph.fetched_at DESC) AS rn
-                    FROM price_histories ph
-                    JOIN cheapest c ON c.offer_id = ph.product_offer_id
-                ),
-                dropped_offers AS (
-                    SELECT offer_id
-                    FROM ranked
-                    WHERE rn <= 2
-                    GROUP BY offer_id
-                    HAVING COUNT(*) = 2
-                       AND MAX(CASE WHEN rn = 1 THEN effective_price END)
-                         < MAX(CASE WHEN rn = 2 THEN effective_price END)
-                )
-                SELECT COUNT(DISTINCT o.product_id) AS count
-                FROM product_offers o
-                JOIN dropped_offers d ON d.offer_id = o.id
-                WHERE o.is_active = true
-                  AND o.product_id = ANY(${ids}::bigint[])
-            `;
-            totalCount = Number(rows[0]?.count ?? 0);
-        } else {
-            totalCount = 0;
-        }
+        // count は後段の統合クエリで取得するためここでは 0 で初期化
+        totalCount = 0;
     } else {
         totalCount = await prisma.product.count({ where });
     }
@@ -151,49 +117,71 @@ async function fetchProducts(params: {
             orderedIds = [];
         }
     } else if (sort === 'price_down') {
-        const matchingIds = await prisma.product.findMany({ where, select: { id: true } });
-        if (matchingIds.length > 0) {
-            const ids = matchingIds.map((p) => p.id);
-            const rows = await prisma.$queryRaw<{ id: bigint }[]>`
-                WITH cheapest AS (
-                    SELECT DISTINCT ON (product_id) id AS offer_id
-                    FROM product_offers
-                    WHERE is_active = true AND product_id = ANY(${ids}::bigint[])
-                    ORDER BY product_id, effective_price ASC
-                ),
-                ranked AS (
-                    SELECT
-                        ph.product_offer_id AS offer_id,
-                        ph.effective_price,
-                        ROW_NUMBER() OVER (PARTITION BY ph.product_offer_id ORDER BY ph.fetched_at DESC) AS rn
-                    FROM price_histories ph
-                    JOIN cheapest c ON c.offer_id = ph.product_offer_id
-                ),
-                dropped_offers AS (
-                    SELECT
-                        offer_id,
-                        MAX(CASE WHEN rn = 1 THEN effective_price END) AS current_price,
-                        MAX(CASE WHEN rn = 2 THEN effective_price END) AS prev_price
-                    FROM ranked
-                    WHERE rn <= 2
-                    GROUP BY offer_id
-                    HAVING COUNT(*) = 2
-                       AND MAX(CASE WHEN rn = 1 THEN effective_price END)
-                         < MAX(CASE WHEN rn = 2 THEN effective_price END)
-                )
+        // フィルター条件を SQL に直接埋め込み、findMany の中間呼び出しを排除
+        const qFilter = q
+            ? Prisma.sql`AND (p.name ILIKE ${'%' + q + '%'} OR p.normalized_name ILIKE ${'%' + q + '%'})`
+            : Prisma.empty;
+        const categoryFilter = targetCategoryIds
+            ? Prisma.sql`AND p.category_id = ANY(${targetCategoryIds}::bigint[])`
+            : Prisma.empty;
+        const petTypeFilter = petType
+            ? Prisma.sql`AND p.pet_type = ANY(${[petType, 'both']}::text[])`
+            : Prisma.empty;
+
+        const offset = (currentPage - 1) * PAGE_SIZE;
+
+        const rows = await prisma.$queryRaw<{ id: bigint; total_count: bigint }[]>`
+            WITH cheapest AS (
+                -- 商品ごとの最安アクティブオファーを1件選択
+                SELECT DISTINCT ON (po.product_id)
+                    po.id    AS offer_id,
+                    po.product_id
+                FROM product_offers po
+                JOIN products p ON p.id = po.product_id
+                WHERE po.is_active = true
+                  AND p.is_active = true
+                  ${qFilter}
+                  ${categoryFilter}
+                  ${petTypeFilter}
+                ORDER BY po.product_id, po.effective_price ASC
+            ),
+            ph_pair AS (
+                -- LATERAL + LIMIT 2 でインデックスを活用し最新2件のみ取得
                 SELECT
-                    o.product_id AS id
-                FROM product_offers o
-                JOIN dropped_offers d ON d.offer_id = o.id
-                WHERE o.is_active = true
-                  AND o.product_id = ANY(${ids}::bigint[])
-                ORDER BY (d.prev_price - d.current_price)::numeric / NULLIF(d.prev_price, 0) DESC
-                LIMIT ${PAGE_SIZE} OFFSET ${(currentPage - 1) * PAGE_SIZE}
-            `;
-            orderedIds = rows.map((r) => r.id);
-        } else {
-            orderedIds = [];
-        }
+                    c.offer_id,
+                    c.product_id,
+                    ph.effective_price,
+                    ROW_NUMBER() OVER (PARTITION BY c.offer_id ORDER BY ph.fetched_at DESC) AS rn
+                FROM cheapest c
+                JOIN LATERAL (
+                    SELECT effective_price, fetched_at
+                    FROM price_histories
+                    WHERE product_offer_id = c.offer_id
+                    ORDER BY fetched_at DESC
+                    LIMIT 2
+                ) ph ON true
+            ),
+            dropped AS (
+                SELECT
+                    product_id,
+                    MAX(CASE WHEN rn = 1 THEN effective_price END) AS cur,
+                    MAX(CASE WHEN rn = 2 THEN effective_price END) AS prev
+                FROM ph_pair
+                GROUP BY product_id
+                HAVING COUNT(*) = 2
+                   AND MAX(CASE WHEN rn = 1 THEN effective_price END)
+                     < MAX(CASE WHEN rn = 2 THEN effective_price END)
+            )
+            SELECT
+                product_id                              AS id,
+                COUNT(*) OVER ()                        AS total_count
+            FROM dropped
+            ORDER BY (prev - cur)::numeric / NULLIF(prev, 0) DESC
+            LIMIT ${PAGE_SIZE} OFFSET ${offset}
+        `;
+
+        totalCount = Number(rows[0]?.total_count ?? 0);
+        orderedIds = rows.map((r) => r.id);
     }
 
     const products = orderedIds !== null && orderedIds.length === 0 ? [] : await prisma.product.findMany({
