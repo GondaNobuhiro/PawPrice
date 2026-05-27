@@ -1,4 +1,7 @@
-import Link from 'next/link';
+'use client';
+
+import { useTransition, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 type ChildCategory = {
     id: string;
@@ -38,12 +41,7 @@ const CATEGORY_ICONS: Record<string, string> = {
     deodorant: '/image/icon/deodorizing.jpg',
 };
 
-function buildHref(
-    categoryId: string,
-    q: string,
-    sort: string,
-    petType: string,
-): string {
+function buildHref(categoryId: string, q: string, sort: string, petType: string): string {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (categoryId) params.set('categoryId', categoryId);
@@ -53,17 +51,25 @@ function buildHref(
     return query ? `/?${query}` : '/';
 }
 
-export default function CategoryFilterChips({
-    categories,
-    selectedCategoryId,
-    q,
-    sort,
-    petType,
-}: Props) {
+const Spinner = () => (
+    <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#EA580C] border-t-transparent" />
+);
+
+export default function CategoryFilterChips({ categories, selectedCategoryId, q, sort, petType }: Props) {
+    const router = useRouter();
+    const [isPending, startTransition] = useTransition();
+    const [pendingId, setPendingId] = useState<string | null>(null);
+
+    const handleClick = (categoryId: string) => {
+        if (isPending || categoryId === selectedCategoryId) return;
+        setPendingId(categoryId);
+        startTransition(() => {
+            router.push(buildHref(categoryId, q, sort, petType));
+        });
+    };
+
     const selectedParent = categories.find(
-        (c) =>
-            c.id === selectedCategoryId ||
-            c.children.some((child) => child.id === selectedCategoryId),
+        (c) => c.id === selectedCategoryId || c.children.some((child) => child.id === selectedCategoryId),
     );
 
     return (
@@ -73,38 +79,40 @@ export default function CategoryFilterChips({
             {/* 親カテゴリ */}
             <div className="flex flex-wrap gap-2">
                 {/* すべて */}
-                <Link
-                    href={buildHref('', q, sort, petType)}
-                    prefetch={false}
-                    className={`flex h-[80px] w-[80px] flex-shrink-0 flex-col items-center overflow-hidden rounded-xl border transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm ${
-                        selectedCategoryId === ''
-                            ? 'border-2 border-[#EA580C]'
-                            : 'border-[#E7E5E4] hover:border-[#EA580C]/40'
+                <button
+                    type="button"
+                    onClick={() => handleClick('')}
+                    disabled={isPending}
+                    className={`relative flex h-[80px] w-[80px] flex-shrink-0 flex-col items-center overflow-hidden rounded-xl border transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm disabled:cursor-wait ${
+                        selectedCategoryId === '' ? 'border-2 border-[#EA580C]' : 'border-[#E7E5E4] hover:border-[#EA580C]/40'
                     }`}
                 >
-                    <span className="flex h-[58px] w-full items-center justify-center text-2xl">🐾</span>
+                    <span className={`flex h-[58px] w-full items-center justify-center text-2xl transition-opacity ${isPending && pendingId === '' ? 'opacity-30' : ''}`}>
+                        🐾
+                    </span>
                     <span className={`flex flex-1 items-center px-1 text-center text-[9px] font-medium leading-tight ${
                         selectedCategoryId === '' ? 'text-[#EA580C]' : 'text-[#57534E]'
                     }`}>
                         すべて
                     </span>
-                </Link>
+                    {isPending && pendingId === '' && (
+                        <span className="absolute inset-0 flex items-center justify-center"><Spinner /></span>
+                    )}
+                </button>
 
                 {categories.map((category) => {
-                    const isActive =
-                        category.id === selectedCategoryId ||
-                        category.children.some((c) => c.id === selectedCategoryId);
+                    const isActive = category.id === selectedCategoryId || category.children.some((c) => c.id === selectedCategoryId);
+                    const isLoading = isPending && pendingId === category.id;
                     const iconSrc = CATEGORY_ICONS[category.code];
 
                     return (
-                        <Link
+                        <button
                             key={category.id}
-                            href={buildHref(category.id, q, sort, petType)}
-                            prefetch={false}
-                            className={`flex h-[80px] w-[80px] flex-shrink-0 flex-col items-center overflow-hidden rounded-xl border transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm ${
-                                isActive
-                                    ? 'border-2 border-[#EA580C]'
-                                    : 'border-[#E7E5E4] hover:border-[#EA580C]/40'
+                            type="button"
+                            onClick={() => handleClick(category.id)}
+                            disabled={isPending}
+                            className={`relative flex h-[80px] w-[80px] flex-shrink-0 flex-col items-center overflow-hidden rounded-xl border transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm disabled:cursor-wait ${
+                                isActive ? 'border-2 border-[#EA580C]' : 'border-[#E7E5E4] hover:border-[#EA580C]/40'
                             }`}
                         >
                             {iconSrc ? (
@@ -113,17 +121,22 @@ export default function CategoryFilterChips({
                                     alt=""
                                     width={80}
                                     height={50}
-                                    className="h-[58px] w-full object-contain"
+                                    className={`h-[58px] w-full object-contain transition-opacity ${isLoading ? 'opacity-30' : ''}`}
                                 />
                             ) : (
-                                <span className="flex h-[58px] w-full items-center justify-center text-2xl">📦</span>
+                                <span className={`flex h-[58px] w-full items-center justify-center text-2xl transition-opacity ${isLoading ? 'opacity-30' : ''}`}>
+                                    📦
+                                </span>
                             )}
                             <span className={`flex flex-1 items-center px-1 text-center text-[9px] font-medium leading-tight ${
                                 isActive ? 'text-[#EA580C]' : 'text-[#57534E]'
                             }`}>
                                 {category.name}
                             </span>
-                        </Link>
+                            {isLoading && (
+                                <span className="absolute inset-0 flex items-center justify-center"><Spinner /></span>
+                            )}
+                        </button>
                     );
                 })}
             </div>
@@ -131,31 +144,42 @@ export default function CategoryFilterChips({
             {/* 子カテゴリ（親選択時のみ表示） */}
             {selectedParent && selectedParent.children.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 border-l-2 border-[#E7E5E4] pl-4">
-                    <Link
-                        href={buildHref(selectedParent.id, q, sort, petType)}
-                        prefetch={false}
-                        className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
+                    <button
+                        type="button"
+                        onClick={() => handleClick(selectedParent.id)}
+                        disabled={isPending}
+                        className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 disabled:cursor-wait ${
                             selectedCategoryId === selectedParent.id
                                 ? 'bg-[#EA580C] text-white shadow-sm'
                                 : 'border border-[#E7E5E4] bg-white text-[#78716C] hover:border-[#EA580C]/40 hover:bg-orange-50 hover:text-[#EA580C]'
-                        }`}
+                        } ${isPending && pendingId === selectedParent.id ? 'opacity-50' : ''}`}
                     >
-                        すべて ({selectedParent.productCount})
-                    </Link>
-                    {selectedParent.children.map((child) => (
-                        <Link
-                            key={child.id}
-                            href={buildHref(child.id, q, sort, petType)}
-                            prefetch={false}
-                            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
-                                child.id === selectedCategoryId
-                                    ? 'bg-[#EA580C] text-white shadow-sm'
-                                    : 'border border-[#E7E5E4] bg-white text-[#78716C] hover:border-[#EA580C]/40 hover:bg-orange-50 hover:text-[#EA580C]'
-                            }`}
-                        >
-                            {child.name} ({child.productCount})
-                        </Link>
-                    ))}
+                        {isPending && pendingId === selectedParent.id
+                            ? <span className="inline-flex items-center gap-1"><span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />読込中</span>
+                            : `すべて (${selectedParent.productCount})`
+                        }
+                    </button>
+                    {selectedParent.children.map((child) => {
+                        const isLoading = isPending && pendingId === child.id;
+                        return (
+                            <button
+                                key={child.id}
+                                type="button"
+                                onClick={() => handleClick(child.id)}
+                                disabled={isPending}
+                                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 disabled:cursor-wait ${
+                                    child.id === selectedCategoryId
+                                        ? 'bg-[#EA580C] text-white shadow-sm'
+                                        : 'border border-[#E7E5E4] bg-white text-[#78716C] hover:border-[#EA580C]/40 hover:bg-orange-50 hover:text-[#EA580C]'
+                                } ${isLoading ? 'opacity-50' : ''}`}
+                            >
+                                {isLoading
+                                    ? <span className="inline-flex items-center gap-1"><span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />読込中</span>
+                                    : `${child.name} (${child.productCount})`
+                                }
+                            </button>
+                        );
+                    })}
                 </div>
             )}
         </div>
