@@ -79,60 +79,38 @@ async function fetchProducts(params: {
         }
     }
 
-    const where = {
-        isActive: true,
-        offers: { some: { isActive: true } },
-        ...(q ? { OR: [
-            { name: { contains: q, mode: 'insensitive' as const } },
-            { normalizedName: { contains: q, mode: 'insensitive' as const } },
-        ]} : {}),
-        ...(targetCategoryIds ? { categoryId: { in: targetCategoryIds } } : {}),
-        ...(petType ? { petType: { in: [petType, 'both'] } } : {}),
-    };
+    const qFilter = q
+        ? Prisma.sql`AND (p.name ILIKE ${'%' + q + '%'} OR p.normalized_name ILIKE ${'%' + q + '%'})`
+        : Prisma.empty;
+    const categoryFilter = targetCategoryIds
+        ? Prisma.sql`AND p.category_id = ANY(${targetCategoryIds}::bigint[])`
+        : Prisma.empty;
+    const petTypeFilter = petType
+        ? Prisma.sql`AND p.pet_type = ANY(${[petType, 'both']}::text[])`
+        : Prisma.empty;
 
-    let totalCount: number;
-    if (sort === 'price_down') {
-        // count は後段の統合クエリで取得するためここでは 0 で初期化
-        totalCount = 0;
-    } else {
-        totalCount = await prisma.product.count({ where });
-    }
+    const offset = (currentPage - 1) * PAGE_SIZE;
+    let totalCount = 0;
+    let orderedIds: bigint[] = [];
 
-    let orderedIds: bigint[] | null = null;
     if (sort === 'price_asc') {
-        const matchingIds = await prisma.product.findMany({ where, select: { id: true } });
-        if (matchingIds.length > 0) {
-            const ids = matchingIds.map((p) => p.id);
-            const rows = await prisma.$queryRaw<{ id: bigint }[]>`
-                SELECT p.id
-                FROM products p
-                LEFT JOIN product_offers o ON o.product_id = p.id AND o.is_active = true
-                WHERE p.id = ANY(${ids}::bigint[])
-                GROUP BY p.id
-                ORDER BY MIN(o.effective_price) ASC NULLS LAST
-                LIMIT ${PAGE_SIZE} OFFSET ${(currentPage - 1) * PAGE_SIZE}
-            `;
-            orderedIds = rows.map((r) => r.id);
-        } else {
-            orderedIds = [];
-        }
+        const rows = await prisma.$queryRaw<{ id: bigint; total_count: bigint }[]>`
+            SELECT p.id, COUNT(*) OVER() AS total_count
+            FROM products p
+            JOIN product_offers po ON po.product_id = p.id AND po.is_active = true
+            WHERE p.is_active = true
+              ${qFilter}
+              ${categoryFilter}
+              ${petTypeFilter}
+            GROUP BY p.id
+            ORDER BY MIN(po.effective_price) ASC NULLS LAST
+            LIMIT ${PAGE_SIZE} OFFSET ${offset}
+        `;
+        totalCount = Number(rows[0]?.total_count ?? 0);
+        orderedIds = rows.map((r) => r.id);
     } else if (sort === 'price_down') {
-        // フィルター条件を SQL に直接埋め込み、findMany の中間呼び出しを排除
-        const qFilter = q
-            ? Prisma.sql`AND (p.name ILIKE ${'%' + q + '%'} OR p.normalized_name ILIKE ${'%' + q + '%'})`
-            : Prisma.empty;
-        const categoryFilter = targetCategoryIds
-            ? Prisma.sql`AND p.category_id = ANY(${targetCategoryIds}::bigint[])`
-            : Prisma.empty;
-        const petTypeFilter = petType
-            ? Prisma.sql`AND p.pet_type = ANY(${[petType, 'both']}::text[])`
-            : Prisma.empty;
-
-        const offset = (currentPage - 1) * PAGE_SIZE;
-
         const rows = await prisma.$queryRaw<{ id: bigint; total_count: bigint }[]>`
             WITH cheapest AS (
-                -- 商品ごとの最安アクティブオファーを1件選択
                 SELECT DISTINCT ON (po.product_id)
                     po.id    AS offer_id,
                     po.product_id
@@ -146,7 +124,6 @@ async function fetchProducts(params: {
                 ORDER BY po.product_id, po.effective_price ASC
             ),
             ph_pair AS (
-                -- LATERAL + LIMIT 2 でインデックスを活用し最新2件のみ取得
                 SELECT
                     c.offer_id,
                     c.product_id,
@@ -179,16 +156,27 @@ async function fetchProducts(params: {
             ORDER BY (prev - cur)::numeric / NULLIF(prev, 0) DESC
             LIMIT ${PAGE_SIZE} OFFSET ${offset}
         `;
-
+        totalCount = Number(rows[0]?.total_count ?? 0);
+        orderedIds = rows.map((r) => r.id);
+    } else {
+        const rows = await prisma.$queryRaw<{ id: bigint; total_count: bigint }[]>`
+            SELECT p.id, COUNT(*) OVER() AS total_count
+            FROM products p
+            JOIN product_offers po ON po.product_id = p.id AND po.is_active = true
+            WHERE p.is_active = true
+              ${qFilter}
+              ${categoryFilter}
+              ${petTypeFilter}
+            GROUP BY p.id
+            ORDER BY p.created_at DESC
+            LIMIT ${PAGE_SIZE} OFFSET ${offset}
+        `;
         totalCount = Number(rows[0]?.total_count ?? 0);
         orderedIds = rows.map((r) => r.id);
     }
 
-    const products = orderedIds !== null && orderedIds.length === 0 ? [] : await prisma.product.findMany({
-        where: orderedIds ? { id: { in: orderedIds } } : where,
-        skip: orderedIds ? undefined : (currentPage - 1) * PAGE_SIZE,
-        take: orderedIds ? undefined : PAGE_SIZE,
-        orderBy: orderedIds ? undefined : { createdAt: 'desc' },
+    const products = orderedIds.length === 0 ? [] : await prisma.product.findMany({
+        where: { id: { in: orderedIds } },
         include: {
             category: {
                 select: {
@@ -225,9 +213,7 @@ async function fetchProducts(params: {
         },
     });
 
-    const sortedProducts = orderedIds
-        ? orderedIds.map((id) => products.find((p) => p.id === id)!).filter(Boolean)
-        : products;
+    const sortedProducts = orderedIds.map((id) => products.find((p) => p.id === id)!).filter(Boolean);
 
     const productIds = sortedProducts.map((p) => p.id);
     const historicalMins = productIds.length > 0
