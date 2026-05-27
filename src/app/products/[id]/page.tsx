@@ -73,13 +73,19 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
     const initialWatched = !!watchEntry;
     const backHref = from ? decodeURIComponent(from) : '/';
 
+    const petLabel = petTypeLabel(product.petType);
+    const descriptionText = product.description
+        ?? `${product.name}の価格比較。${product.brand ? `${product.brand}の` : ''}${product.category}（${petLabel}用）商品。複数ショップの最安値を比較できます。`;
+
     const productJsonLd = {
         '@context': 'https://schema.org',
         '@type': 'Product',
         name: product.name,
-        description: product.description ?? undefined,
+        description: descriptionText,
         image: product.imageUrl ?? undefined,
         brand: product.brand ? { '@type': 'Brand', name: product.brand } : undefined,
+        ...(product.janCode ? { gtin13: product.janCode } : {}),
+        ...(product.modelNumber ? { mpn: product.modelNumber } : {}),
         offers: product.offers.map((offer) => ({
             '@type': 'Offer',
             price: offer.effectivePrice,
@@ -87,6 +93,25 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
             availability: 'https://schema.org/InStock',
             url: offer.externalUrl,
             seller: offer.sellerName ? { '@type': 'Organization', name: offer.sellerName } : undefined,
+            hasMerchantReturnPolicy: {
+                '@type': 'MerchantReturnPolicy',
+                applicableCountry: 'JP',
+                returnPolicyCategory: 'https://schema.org/MerchantReturnUnspecified',
+            },
+            ...(offer.shippingFee !== null ? {
+                shippingDetails: {
+                    '@type': 'OfferShippingDetails',
+                    shippingDestination: {
+                        '@type': 'DefinedRegion',
+                        addressCountry: 'JP',
+                    },
+                    shippingRate: {
+                        '@type': 'MonetaryAmount',
+                        currency: 'JPY',
+                        value: offer.shippingFee,
+                    },
+                },
+            } : {}),
         })),
     };
 
