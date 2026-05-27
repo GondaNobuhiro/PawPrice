@@ -94,8 +94,23 @@ async function fetchProducts(params: {
     let orderedIds: bigint[] = [];
 
     if (sort === 'price_asc') {
-        const rows = await prisma.$queryRaw<{ id: bigint; total_count: bigint }[]>`
-            SELECT p.id, COUNT(*) OVER() AS total_count
+        // COUNT(*) OVER() は全行 materialize を強制するため分離して実行
+        const countRows = await prisma.$queryRaw<{ count: bigint }[]>`
+            SELECT COUNT(*) AS count
+            FROM products p
+            WHERE p.is_active = true
+              ${qFilter}
+              ${categoryFilter}
+              ${petTypeFilter}
+              AND EXISTS (
+                SELECT 1 FROM product_offers po
+                WHERE po.product_id = p.id AND po.is_active = true
+              )
+        `;
+        totalCount = Number(countRows[0]?.count ?? 0);
+
+        const pageRows = await prisma.$queryRaw<{ id: bigint }[]>`
+            SELECT p.id
             FROM products p
             JOIN product_offers po ON po.product_id = p.id AND po.is_active = true
             WHERE p.is_active = true
@@ -106,8 +121,7 @@ async function fetchProducts(params: {
             ORDER BY MIN(po.effective_price) ASC NULLS LAST
             LIMIT ${PAGE_SIZE} OFFSET ${offset}
         `;
-        totalCount = Number(rows[0]?.total_count ?? 0);
-        orderedIds = rows.map((r) => r.id);
+        orderedIds = pageRows.map((r) => r.id);
     } else if (sort === 'price_down') {
         const rows = await prisma.$queryRaw<{ id: bigint; total_count: bigint }[]>`
             WITH cheapest AS (
@@ -159,20 +173,36 @@ async function fetchProducts(params: {
         totalCount = Number(rows[0]?.total_count ?? 0);
         orderedIds = rows.map((r) => r.id);
     } else {
-        const rows = await prisma.$queryRaw<{ id: bigint; total_count: bigint }[]>`
-            SELECT p.id, COUNT(*) OVER() AS total_count
+        // newest: created_at インデックスを使うため EXISTS に変更、COUNT も分離
+        const countRows = await prisma.$queryRaw<{ count: bigint }[]>`
+            SELECT COUNT(*) AS count
             FROM products p
-            JOIN product_offers po ON po.product_id = p.id AND po.is_active = true
             WHERE p.is_active = true
               ${qFilter}
               ${categoryFilter}
               ${petTypeFilter}
-            GROUP BY p.id
+              AND EXISTS (
+                SELECT 1 FROM product_offers po
+                WHERE po.product_id = p.id AND po.is_active = true
+              )
+        `;
+        totalCount = Number(countRows[0]?.count ?? 0);
+
+        const pageRows = await prisma.$queryRaw<{ id: bigint }[]>`
+            SELECT p.id
+            FROM products p
+            WHERE p.is_active = true
+              ${qFilter}
+              ${categoryFilter}
+              ${petTypeFilter}
+              AND EXISTS (
+                SELECT 1 FROM product_offers po
+                WHERE po.product_id = p.id AND po.is_active = true
+              )
             ORDER BY p.created_at DESC
             LIMIT ${PAGE_SIZE} OFFSET ${offset}
         `;
-        totalCount = Number(rows[0]?.total_count ?? 0);
-        orderedIds = rows.map((r) => r.id);
+        orderedIds = pageRows.map((r) => r.id);
     }
 
     const products = orderedIds.length === 0 ? [] : await prisma.product.findMany({
