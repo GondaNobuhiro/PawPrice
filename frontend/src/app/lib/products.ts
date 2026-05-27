@@ -341,6 +341,8 @@ export type ProductDetail = {
     packageSize: string | null;
     imageUrl: string | null;
     description: string | null;
+    janCode: string | null;
+    modelNumber: string | null;
     offers: {
         id: string;
         shopType: string;
@@ -402,6 +404,8 @@ async function fetchProduct(id: string): Promise<ProductDetail | null> {
         packageSize: product.packageSize,
         imageUrl: product.imageUrl,
         description: product.description,
+        janCode: product.janCode,
+        modelNumber: product.modelNumber,
         offers: product.offers.map((offer) => ({
             id: offer.id.toString(),
             shopType: offer.shopType,
