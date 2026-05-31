@@ -1,7 +1,18 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+const BOT_UA_PATTERNS = [
+    /AhrefsBot/i,
+    /SemrushBot/i,
+    /MJ12bot/i,
+];
+
 export default function middleware(request: NextRequest) {
+    const ua = request.headers.get('user-agent') ?? '';
+    if (BOT_UA_PATTERNS.some((pattern) => pattern.test(ua))) {
+        return new NextResponse(null, { status: 403 });
+    }
+
     const existing = request.cookies.get('session_id')?.value;
     const sessionId = existing ?? crypto.randomUUID();
 
