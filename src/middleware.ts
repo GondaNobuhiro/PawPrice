@@ -47,6 +47,7 @@ const BOT_UA_PATTERNS = [
     /SemrushBot/i,
     /SerpStatBot/i,
     /MJ12bot/i,
+    /BacklinksExtendedBot/i,
 ];
 
 function log(status: number, request: NextRequest, ip: string) {
@@ -56,7 +57,7 @@ function log(status: number, request: NextRequest, ip: string) {
         method: request.method,
         path: request.nextUrl.pathname + (request.nextUrl.search || ''),
         ip,
-        ua: (request.headers.get('user-agent') ?? '').substring(0, 150),
+        ua: (request.headers.get('user-agent') ?? '').substring(0, 200),
     }));
 }
 
