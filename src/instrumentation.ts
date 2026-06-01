@@ -52,7 +52,8 @@ class ImmediateSpanProcessor {
 export async function register() {
     if (process.env.NEXT_RUNTIME === 'edge') return;
 
-    const { NodeSDK } = await import('@opentelemetry/sdk-node');
+    // webpackIgnore: Edge RuntimeバンドルにgRPC依存を含めないため静的解析をスキップ
+    const { NodeSDK } = await import(/* webpackIgnore: true */ '@opentelemetry/sdk-node');
 
     const sdk = new NodeSDK({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
