@@ -43,6 +43,8 @@ const BOT_UA_PATTERNS = [
     /Claude-SearchBot/i,
     /cohere-ai/i,
     // SEO分析ツールの商業クローラー
+    /AhrefsBot/i,
+    /SemrushBot/i,
     /SerpStatBot/i,
     /MJ12bot/i,
 ];

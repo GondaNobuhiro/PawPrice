@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+    // @opentelemetry/sdk-node はNode.jsランタイム専用のため、webpackバンドルから除外
+    serverExternalPackages: ['@opentelemetry/sdk-node', '@grpc/grpc-js'],
     // Amplify WEB_COMPUTE の Lambda は Amplify 環境変数を受け取らないため
     // ビルド時に値を埋め込む（サーバーサイドのみ、クライアントには非公開）
     env: {
